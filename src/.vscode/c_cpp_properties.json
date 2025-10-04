@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "D:/raylib/raylib/src",
+                "D:/raylib/raylib/src/external"
+            ],
+            "defines": [],
+            "compilerPath": "D:/raylib/w64devkit/bin/g++.exe",
+            "cppStandard": "c++17", 
+            "intelliSenseMode": "gcc-x64",
+            "browse": {
+                "path": [
+                    "D:/raylib/raylib/src",
+                    "D:/raylib/raylib/src/external"
+                ],
+                "limitSymbolsToIncludedHeaders": true
+            }
+        }
+    ],
+    "version": 4
+}

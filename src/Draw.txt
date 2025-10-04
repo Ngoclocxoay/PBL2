@@ -1,0 +1,358 @@
+#include "raylib.h"
+#include <iostream>
+
+const int ngang = 800;
+const int doc = 800;
+const int soluongo = 8;
+const int sum_dorong = 640;                 
+const int size_moto = 80;
+const int truc_ngang = (ngang - sum_dorong) / 2;
+const int truc_doc = (doc - sum_dorong) / 2;
+
+// 0: quan co trang
+// 1: quan co den
+Texture2D quan_co[2][6];  
+
+// 0->5 quan den, -1: o trong, 6->11: quan trang 
+int board[8][8] = {
+    {1, 2, 3, 4, 5, 3, 2, 1},   
+    {0, 0, 0, 0, 0, 0, 0, 0},   
+    {-1,-1,-1,-1,-1,-1,-1,-1}, 
+    {-1,-1,-1,-1,-1,-1,-1,-1},
+    {-1,-1,-1,-1,-1,-1,-1,-1},
+    {-1,-1,-1,-1,-1,-1,-1,-1},
+    {6, 6, 6, 6, 6, 6, 6, 6},   
+    {7, 8, 9,10,11, 9, 8, 7}    
+};
+
+
+
+// ô đang được chọn
+int get_ngang = -1;
+int get_cot = -1;
+
+// Hàm load ảnh quân cờ
+void Load_quanco()
+{
+    // Đen
+    quan_co[1][0] = LoadTexture("hinhdang/black_pawn.png");
+    quan_co[1][1] = LoadTexture("hinhdang/black_rook.png");
+    quan_co[1][2] = LoadTexture("hinhdang/black_knight.png");
+    quan_co[1][3] = LoadTexture("hinhdang/black_bishop.png");
+    quan_co[1][4] = LoadTexture("hinhdang/black_queen.png");
+    quan_co[1][5] = LoadTexture("hinhdang/black_king.png");
+    // Trắng
+    quan_co[0][0] = LoadTexture("hinhdang/white_pawn.png");
+    quan_co[0][1] = LoadTexture("hinhdang/white_rook.png");
+    quan_co[0][2] = LoadTexture("hinhdang/white_knight.png");
+    quan_co[0][3] = LoadTexture("hinhdang/white_bishop.png");
+    quan_co[0][4] = LoadTexture("hinhdang/white_queen.png");
+    quan_co[0][5] = LoadTexture("hinhdang/white_king.png");
+}
+
+void vebang() 
+{
+    Color maugosang = Color{240, 217, 181, 255};
+    Color maugotoi  = Color{181, 136, 99, 255};
+
+    for (int row = 0; row < soluongo; row++) 
+    {
+        for (int col = 0; col < soluongo; col++) 
+        {
+            Color mauhientai = ((row + col) % 2 == 0) ? maugosang : maugotoi;
+            int Xi, Yi;
+            Xi=truc_ngang + col * size_moto;
+            Yi=truc_doc + row * size_moto;
+            DrawRectangle(Xi, Yi, size_moto, size_moto, mauhientai);
+
+            // highlight ô được chọn
+            if (row == get_ngang && col == get_cot) 
+            {
+                DrawRectangleLinesEx( { (float)Xi, (float)Yi, (float)size_moto, (float)size_moto },4, RED);
+            }
+        }
+    }
+    DrawRectangleLines(truc_ngang, truc_doc, sum_dorong, sum_dorong, BLACK);
+}
+
+void vequanco() 
+{
+    for (int row = 0; row < 8; row++) 
+    {
+        for (int col = 0; col < 8; col++) 
+        {
+            int id = board[row][col];
+            if (id == -1) continue;
+            int Xi, Yi;
+            Xi=truc_ngang + col * size_moto;
+            Yi=truc_doc + row * size_moto;
+            int R = (id < 6) ? 1 : 0;
+            int C = (id < 6) ? id : id - 6;
+
+            Texture2D tex = quan_co[R][C];
+            float scale = (float)size_moto / tex.width;
+
+            DrawTextureEx(tex,
+                {(float)Xi, (float)Yi},
+                0.0f, scale, WHITE);
+        }
+    }
+}
+
+int main() 
+{
+    InitWindow(ngang, doc, "Chess");
+    SetTargetFPS(80);
+    Load_quanco();
+    while (!WindowShouldClose()) 
+    {
+        // Chọn ô
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) 
+        {
+            Vector2 mouse = GetMousePosition();
+            int col = (mouse.x - truc_ngang) / size_moto;
+            int row = (mouse.y - truc_doc) / size_moto;
+
+            if (col >= 0 && col < 8 && row >= 0 && row < 8) {
+                if (get_ngang == row && get_cot == col) 
+                {
+                    // chon 2 lan =  bo chon
+                    get_ngang = -1;
+                    get_cot = -1;
+                }
+                else 
+                {
+                    get_ngang = row;
+                    get_cot = col;
+                }
+            }
+        }
+        BeginDrawing();
+        ClearBackground(RAYWHITE);
+        vebang();
+        vequanco();
+        EndDrawing();
+    }
+
+    // Giải phóng
+    for (int s = 0; s < 2; s++)
+        for (int t = 0; t < 6; t++)
+            UnloadTexture(quan_co[s][t]);
+
+    CloseWindow();
+    return 0;
+}
+
+#include "raylib.h"
+#include <iostream>
+
+const int ngang = 800;
+const int doc = 800;
+const int soluongo = 8;
+const int sum_dorong = 640;                 
+const int size_moto = 80;
+const int truc_ngang = (ngang - sum_dorong) / 2;
+const int truc_doc = (doc - sum_dorong) / 2;
+
+// 0: quan co trang
+// 1: quan co den
+Texture2D quan_co[2][6];  
+
+// 0->5 quan den, -1: o trong, 6->11: quan trang 
+int board[8][8] = {
+    {1, 2, 3, 4, 5, 3, 2, 1},   
+    {0, 0, 0, 0, 0, 0, 0, 0},   
+    {-1,-1,-1,-1,-1,-1,-1,-1}, 
+    {-1,-1,-1,-1,-1,-1,-1,-1},
+    {-1,-1,-1,-1,-1,-1,-1,-1},
+    {-1,-1,-1,-1,-1,-1,-1,-1},
+    {6, 6, 6, 6, 6, 6, 6, 6},   
+    {7, 8, 9,10,11, 9, 8, 7}    
+};
+
+// ô đang được chọn
+int get_ngang = -1;
+int get_cot = -1;
+
+// mảng highlight nước đi pawn
+bool pawnMoves[8][8] = { false };
+
+// Hàm load ảnh quân cờ
+void Load_quanco()
+{
+    // Đen
+    quan_co[1][0] = LoadTexture("hinhdang/black_pawn.png");
+    quan_co[1][1] = LoadTexture("hinhdang/black_rook.png");
+    quan_co[1][2] = LoadTexture("hinhdang/black_knight.png");
+    quan_co[1][3] = LoadTexture("hinhdang/black_bishop.png");
+    quan_co[1][4] = LoadTexture("hinhdang/black_queen.png");
+    quan_co[1][5] = LoadTexture("hinhdang/black_king.png");
+    // Trắng
+    quan_co[0][0] = LoadTexture("hinhdang/white_pawn.png");
+    quan_co[0][1] = LoadTexture("hinhdang/white_rook.png");
+    quan_co[0][2] = LoadTexture("hinhdang/white_knight.png");
+    quan_co[0][3] = LoadTexture("hinhdang/white_bishop.png");
+    quan_co[0][4] = LoadTexture("hinhdang/white_queen.png");
+    quan_co[0][5] = LoadTexture("hinhdang/white_king.png");
+}
+
+
+void dichuyen_pawn(int row, int col) 
+{
+    // reset
+    for (int r = 0; r < 8; r++)
+        for (int c = 0; c < 8; c++)
+            pawnMoves[r][c] = false;
+
+    int id = board[row][col];
+    if (id == -1) return;
+
+    bool color_id = (id >= 6);  // 6-11 là trắng
+    int dir = color_id ? -1 : 1; // trắng đi lên, đen đi xuống
+
+    int buoc_ke = row + dir;
+
+    if (buoc_ke >= 0 && buoc_ke < 8 && board[buoc_ke][col] == -1) 
+    {
+        pawnMoves[buoc_ke][col] = true;
+
+        // start
+        int startRow = color_id ? 6 : 1;
+        if (row == startRow) 
+        {
+            int next2Row = row + 2 * dir;
+            if (board[next2Row][col] == -1) {
+                pawnMoves[next2Row][col] = true;
+            }
+        }
+    }
+
+    // Ăn bên trái
+    if (col - 1 >= 0 && buoc_ke >= 0 && buoc_ke < 8 ) {
+        int target = board[buoc_ke][col - 1];
+        if (target != -1 && (color_id ? target < 6 : target >= 6)) {
+            pawnMoves[buoc_ke][col - 1] = true;
+        }
+    }
+
+    // Ăn bên phải
+    if (col + 1 < 8 && buoc_ke >= 0 && buoc_ke < 8 ) {
+        int target = board[buoc_ke][col + 1];
+        if (target != -1 && (color_id ? target < 6 : target >= 6)) {
+            pawnMoves[buoc_ke][col + 1] = true;
+        }
+    }
+}
+
+void vebang() 
+{
+    Color maugosang = Color{240, 217, 181, 255};
+    Color maugotoi  = Color{181, 136, 99, 255};
+
+    for (int row = 0; row < soluongo; row++) 
+    {
+        for (int col = 0; col < soluongo; col++) 
+        {
+            Color mauhientai = ((row + col) % 2 == 0) ? maugosang : maugotoi;
+            int Xi, Yi;
+            Xi=truc_ngang + col * size_moto;
+            Yi=truc_doc + row * size_moto;
+            DrawRectangle(Xi, Yi, size_moto, size_moto, mauhientai);
+
+            // highlight ô được chọn
+            if (row == get_ngang && col == get_cot) 
+            {
+                DrawRectangleLinesEx( { (float)Xi, (float)Yi, (float)size_moto, (float)size_moto },4, RED);
+            }
+
+            // to mau quan chuot
+            if (pawnMoves[row][col]) {
+                DrawRectangleLinesEx({ (float)Xi, (float)Yi, (float)size_moto, (float)size_moto }, 4, GREEN);
+            }
+        }
+    }
+    DrawRectangleLines(truc_ngang, truc_doc, sum_dorong, sum_dorong, BLACK);
+}
+
+void vequanco() 
+{
+    for (int row = 0; row < 8; row++) 
+    {
+        for (int col = 0; col < 8; col++) 
+        {
+            int id = board[row][col];
+            if (id == -1) continue;
+            int Xi, Yi;
+            Xi=truc_ngang + col * size_moto;
+            Yi=truc_doc + row * size_moto;
+            int R = (id < 6) ? 1 : 0;
+            int C = (id < 6) ? id : id - 6;
+
+            Texture2D tex = quan_co[R][C];
+            float scale = (float)size_moto / tex.width;
+
+            DrawTextureEx(tex,
+                {(float)Xi, (float)Yi},
+                0.0f, scale, WHITE);
+        }
+    }
+}
+
+int main() 
+{
+    InitWindow(ngang, doc, "Chess");
+    SetTargetFPS(80);
+    Load_quanco();
+    while (!WindowShouldClose()) 
+    {
+        // Chọn ô
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) 
+        {
+            Vector2 mouse = GetMousePosition();
+            int col = (mouse.x - truc_ngang) / size_moto;
+            int row = (mouse.y - truc_doc) / size_moto;
+
+            if (col >= 0 && col < 8 && row >= 0 && row < 8 ) {
+                if (get_ngang == row && get_cot == col) 
+                {
+                    // chon 2 lan =  bo chon
+                    get_ngang = -1;
+                    get_cot = -1;
+
+                    // xóa
+                    for (int r = 0; r < 8; r++)
+                        for (int c = 0; c < 8; c++)
+                            pawnMoves[r][c] = false;
+                }
+                else 
+                {
+                    get_ngang = row;
+                    get_cot = col;
+
+                    int id = board[get_ngang][get_cot];
+                    if (id == 0 || id == 6) dichuyen_pawn(get_ngang, get_cot);
+                    else
+                    {
+                        // reset 
+                        for (int r = 0; r < 8; r++)
+                            for (int c = 0; c < 8; c++)
+                                pawnMoves[r][c] = false;
+                    }
+                }
+            }
+        }
+        BeginDrawing();
+        ClearBackground(RAYWHITE);
+        vebang();
+        vequanco();
+        EndDrawing();
+    }
+
+    // Giải phóng
+    for (int s = 0; s < 2; s++)
+        for (int t = 0; t < 6; t++)
+            UnloadTexture(quan_co[s][t]);
+
+    CloseWindow();
+    return 0;
+}
