@@ -1,14 +1,17 @@
 #include "Game.h"
 #include <raylib.h>
 #include "constant.hpp"
+#include <vector>
+using namespace std;
 
-// const int Size = 640;
+
+vector<MoveHint> moveHints;
 
 Game::Game(int width, int height)
     : screenWidth(width), screenHeight(height), currentTurn(Turn::White), get_horizontal(-1), get_vertical(-1) 
 {
-    originX = (width - size)/2;
-    originY = (height - size)/2;
+    originX = (width - Size)/2;
+    originY = (height - Size)/2;
 }
 
 Game::~Game()
@@ -39,8 +42,9 @@ void Game::Draw_frame() const
 
     
     BOARD.DrawBoardBase(originX, originY);
-    BOARD.DrawHighlight(originX, originY, this->get_horizontal, this->get_vertical);
-    for (int toX = 0; toX < 8; toX++)
+    BOARD.DrawHighlight(originX, originY, this->get_horizontal, this->get_vertical, moveHints);
+    BOARD.DrawPiece(originX, originY, cache);
+    /* for (int toX = 0; toX < 8; toX++)
     {
         for (int toY = 0; toY < 8; toY++)
         {   
@@ -49,11 +53,11 @@ void Game::Draw_frame() const
             {
                 int xi = originX + toX*cell_size;
                 int yi = originY + toY*cell_size;
-                BOARD.DrawHighlight(originX, originY, get_horizontal, get_vertical);
+                BOARD.DrawHighlight(originX, originY, get_horizontal, get_vertical, moveHints);
             }
         }
-    }
-    BOARD.DrawPiece(originX, originY, cache);
+    } */
+    
     
     /* const char* turnText = (currentTurn == Turn::White) ? "White's turn" : "Black's turn";
     DrawText(turnText, 10, 10, 20, (Color){0, 0, 0, 255}); */
@@ -82,6 +86,25 @@ void Game::HandleInput()
             {
                 this->get_horizontal = xVal;
                 this->get_vertical = yVal;
+                moveHints.clear();
+                Piece* selected = BOARD.GetPiece(xVal, yVal);
+                if (selected)
+                {
+                    for (int toX = 0; toX < 8; toX++)
+                    {
+                        for (int toY = 0; toY < 8; toY++)
+                        {
+                            if (selected->isValidMove(xVal, yVal, toX, toY, &BOARD))
+                            {
+                                Piece* target = BOARD.GetPiece(toX, toY);
+                                bool canCapture;
+                                if (target && target->getColor() != selected->getColor()) canCapture = true;
+                                else canCapture = false;
+                                moveHints.push_back({toX, toY, canCapture});
+                            }       
+                        } 
+                    }
+                }
             }
         }
         

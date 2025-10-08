@@ -1,6 +1,6 @@
 #pragma once
 #include <raylib.h>
-#include "Constant.hpp"
+#include "constant.hpp"
 #include "TextureCache.h"
 
  class Board; //Forward declaration
@@ -13,9 +13,9 @@ class Piece
         bool hasmoved; // For castling and en passant captureint frromX, int fromY, int toX, int toY, const Board *boardB
     public:
         Piece(PieceType, Colors);
-        ~Piece();
+        virtual ~Piece();
         
-        virtual bool Piece::isValidMove(int, int, int, int, const Board*) const = 0;
+        virtual bool isValidMove(int, int, int, int, const Board*) const = 0;
         virtual Piece* clone() const = 0;
 
         //Get method

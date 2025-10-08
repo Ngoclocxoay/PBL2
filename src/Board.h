@@ -1,6 +1,9 @@
 #pragma once
 #include "Piece.h"
 #include "TextureCache.h"
+#include <vector>
+
+struct MoveHint { int x, y; bool canCapture;};
 
 class Board
 {
@@ -13,7 +16,7 @@ class Board
         void Initialize(); //Initial Board
 
         void DrawBoardBase(int, int) const;
-        void DrawHighlight(int, int, int, int) const;
+        void DrawHighlight(int, int, int, int, const std::vector<MoveHint>&) const;
         void DrawPiece(int, int, const TextureCache&) const;
 
         //Piece access method

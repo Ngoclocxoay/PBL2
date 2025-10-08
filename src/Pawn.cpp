@@ -45,4 +45,5 @@ bool Pawn::isValidMove(int fromX, int fromY, int toX, int toY, const Board *boar
         if (target && target->getColor() != this->getColor()) return true;
         return false;
     }
+    return false;
  }
