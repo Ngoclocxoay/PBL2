@@ -45,8 +45,8 @@ void Game::Draw_frame() const
     BOARD.DrawHighlight(originX, originY, this->get_horizontal, this->get_vertical, moveHints);
     BOARD.DrawPiece(originX, originY, cache);
     
-    /* const char* turnText = (currentTurn == Turn::White) ? "White's turn" : "Black's turn";
-    DrawText(turnText, 10, 10, 20, (Color){0, 0, 0, 255}); */
+    const char* turnText = (currentTurn == Turn::White) ? "White's turn" : "Black's turn";
+    DrawText(turnText, 10, 10, 20, (Color){0, 0, 0, 255});
 
     EndDrawing();
 }
@@ -58,21 +58,22 @@ void Game::HandleInput()
         Vector2 mousePos = GetMousePosition();
         int xVal = (mousePos.x - originX)/cell_size;
         int yVal = (mousePos.y - originY)/cell_size;
-        //TODO:
-            //xu li click chon quan co
         if ((0 > xVal || xVal >= 8) || (0 > yVal || yVal >= 8)) return;
         
+        //Đã có ô đang chọn -> thử di chuyển / đổi chọn
         if (this->get_horizontal != -1 && this->get_vertical != -1)
         {
             if ( this->get_horizontal == xVal && this->get_vertical == yVal)
             {
-                //Click same cell
+                //Click same cell -> cancel
                 this->get_horizontal = -1;
                 this->get_vertical = -1;
                 moveHints.clear();
                 return;
             }
-            
+
+           
+            //Check nước đi hợp lệ 
             bool legal = false;
             for (const auto& h : moveHints)
             {
@@ -88,9 +89,7 @@ void Game::HandleInput()
                     this->get_vertical = -1;
                     moveHints.clear();
 
-                    //todo
-                    /* tuỳ chọn đổi lượt:
-                    currentTurn = (currentTurn == Turn::White) ? Turn::Black : Turn::White;*/
+                    currentTurn = (currentTurn == Turn::White) ? Turn::Black : Turn::White;
                 }
                 return;
             }
@@ -100,6 +99,8 @@ void Game::HandleInput()
                 const Piece* p = BOARD.GetPiece(xVal, yVal);
                 if (p)
                 {
+                    Colors turnColor = (currentTurn == Turn::White) ? Colors::White : Colors::Black;
+                    if (turnColor != p->getColor()) return;
                     //chon lai quan moi va build hint moi
                     this->get_horizontal = xVal;
                     this->get_vertical   = yVal;
@@ -125,6 +126,7 @@ void Game::HandleInput()
                 }
                 return;
             }
+            
         }
 
         //chua co o dang chon -> chon quan & build Hint
@@ -132,6 +134,10 @@ void Game::HandleInput()
         const Piece* selected = BOARD.GetPiece(xVal, yVal);
         if (selected)
         {
+            //check lượt đi
+            Colors turnColor = (currentTurn == Turn::White) ? Colors::White : Colors::Black;
+            if (turnColor != selected->getColor()) return;
+
             this->get_horizontal = xVal;
             this->get_vertical = yVal;
 
