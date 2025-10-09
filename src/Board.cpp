@@ -78,25 +78,23 @@ Piece* Board::GetPiece(int x, int y) const
     return board[x][y];
 }
 
-void Board::MovePiece(int fromX, int fromY, int toX, int toY)
+bool Board::MovePiece(int fromX, int fromY, int toX, int toY)
 {
     //Double check
-    if(!isInBounds(toX, toY) || !isInBounds(fromX, fromY)) return;
+    if(!isInBounds(toX, toY) || !isInBounds(fromX, fromY)) return false;
     Piece* mover = board[fromX][fromY];
-    if (!mover) return;
-    if (fromX == toX && fromY == toY) return;
+    if (!mover) return false;
+    if (fromX == toX && fromY == toY) return false;
 
-    if (board[toX][toY] && board[toX][toY]->getColor() == mover->getColor()) return;
+    if (board[toX][toY] && board[toX][toY]->getColor() == mover->getColor()) return false;
 
-    if (board[toX][toY]) { delete board[toX][toY]; }
+    if (board[toX][toY]) { delete board[toX][toY]; board[toX][toY] = nullptr; }
 
     board[toX][toY] = mover;
     board[fromX][fromY] = nullptr;
     board[toX][toY]->setHasMoved(true);
-    /* if (!board[toX][toY] || !board[fromX][fromY]) return;
 
-    swap(board[toX][toY], board[fromX][fromY]);
-    board[toX][toY]->setHasMoved(true); */
+    return true;
 }
 
 bool Board::isInBounds(int x, int y) const

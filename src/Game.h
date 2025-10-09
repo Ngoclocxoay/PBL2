@@ -15,6 +15,7 @@ class Game
         int originY;
         Turn currentTurn;
         int get_horizontal, get_vertical;
+        int selX, selY;
     public:
         Game(int, int);
         ~Game();

@@ -22,7 +22,7 @@ class Board
         //Piece access method
         Piece* GetPiece(int, int) const;
        // void SetPiece( int, int,int, int);
-        void MovePiece(int, int, int, int);
+        bool MovePiece(int, int, int, int);
 
         //Valid check
         bool isInBounds(int, int) const;
