@@ -2,8 +2,6 @@
 #include "Board.h"
 #include "TextureCache.h"
 
-enum class Turn { White, Black};
-
 class Game
 {
     private:
@@ -13,14 +11,19 @@ class Game
         int screenHeight;
         int originX;
         int originY;
+        bool gameOver;
         Turn currentTurn;
+        Turn winnerTurn;
         int get_horizontal, get_vertical;
         int selX, selY;
+        int kingX, kingY;
     public:
         Game(int, int);
         ~Game();
 
         void Init();
+
+        void ResetGame();
 
         void Render();
 
@@ -29,4 +32,12 @@ class Game
         void Run();
 
         void HandleInput();
+
+        void findKing();
+
+        bool hasAnyLegalMove() const;
+
+        bool inCheck() const;
+        
+        bool checkMate () const;
 };

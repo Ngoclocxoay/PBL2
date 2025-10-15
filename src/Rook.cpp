@@ -3,6 +3,11 @@
 #include <cassert>
 
 static inline bool inside(int x, int y) { return (0 <= x && x < 8) && (0 <= y && y < 8); }
+static inline int ABS(int a) 
+{
+    if (a >= 0) return a;
+    else return (-1)*a;
+}
 
 Rook::Rook(Colors c)
     : Piece(PieceType::ROOK, c)
@@ -25,7 +30,39 @@ bool Rook::pathClear(int fromX, int fromY, int toX, int toY, const Board* board)
     // dừng trước ô đích
     while (x != toX || y != toY) {
         if (!board->isInBounds(x, y)) return false;
-        if (board->GetPiece(x, y) != nullptr) return false; // có quân cản
+        const Piece* target = board->GetPiece(x, y);
+        if (target) 
+        {
+            return false;
+        }
+        x += stepX;
+        y += stepY;
+    }
+    return true;
+}
+
+bool Rook::pathClearKing(int fromX, int fromY, int toX, int toY, const Board* board) const
+{
+    assert (board); 
+
+    int stepX = (toX > fromX) ? 1 : (toX < fromX ? -1 : 0);
+    int stepY = (toY > fromY) ? 1 : (toY < fromY ? -1 : 0);
+
+    int x = fromX + stepX;
+    int y = fromY + stepY;
+
+    // dừng trước ô đích
+    while (x != toX || y != toY) {
+        if (!board->isInBounds(x, y)) return false;
+        const Piece* target = board->GetPiece(x, y);
+        if (target) 
+        {
+            if (ABS(x - toX) == 1 || ABS(y - toY) == 1)
+            {
+                if (target->getType() == PieceType::KING && target->getColor() != this->getColor()) break;
+            }
+            return false;
+        }
         x += stepX;
         y += stepY;
     }
@@ -45,6 +82,24 @@ bool Rook::isValidMove(int fromX, int fromY, int toX, int toY, const Board* boar
     // Phải đi thẳng theo hàng/cột và đường không bị cản
     if (!isStraightLine(fromX, fromY, toX, toY)) return false;
     if (!pathClear(fromX, fromY, toX, toY, board)) return false;
+
+
+    return true;
+}
+
+bool Rook::checkKing(int fromX, int fromY, int toX, int toY, const Board* board) const
+{
+    if (!board) return false;
+    if (!inside(fromX, fromY) || !inside(toX, toY)) return false;
+
+    // Không ăn quân cùng màu
+    if (Piece* target = board->GetPiece(toX, toY)) {
+        if (target->getColor() == this->getColor()) return false;
+    }
+
+    // Phải đi thẳng theo hàng/cột và đường không bị cản
+    if (!isStraightLine(fromX, fromY, toX, toY)) return false;
+    if (!pathClearKing(fromX, fromY, toX, toY, board)) return false;
 
 
     return true;

@@ -97,6 +97,7 @@ bool Board::MovePiece(int fromX, int fromY, int toX, int toY)
     return true;
 }
 
+
 bool Board::isInBounds(int x, int y) const
 {
     return (x >= 0 && x < 8) && (y >= 0 && y < 8);
@@ -130,18 +131,11 @@ void Board::DrawBoardBase(int truc_ngang, int truc_doc) const
 
 void Board::DrawHighlight(int originX, int originY, int getX, int getY, const std::vector<MoveHint>& moveHints) const
 {
-    for (int row = 0; row < count; row++)
-    {
-        for (int collum = 0; collum < count; collum++)
-        {   
-            int xi = originX + row*cell_size;
-            int yi = originY + collum*cell_size;
-            if (row == getX && collum == getY)
-            {
-                DrawRectangleLinesEx( {(float)xi, (float)yi, (float)cell_size, (float)cell_size}, 4, RED); //Highlight 1 ô với độ dày tự thiết lập
-            }
-        }
-    }
+    if (getX == -1 && getY == -1) return;
+    int xi = originX + getX * cell_size;
+    int yi = originY + getY * cell_size;
+    DrawRectangleLinesEx( {(float)xi, (float)yi, (float)cell_size, (float)cell_size}, 4, BLUE); //Highlight 1 ô với độ dày tự thiết lập
+
     for (const auto& hint : moveHints)
     {
         int xi = originX + hint.x*cell_size;
@@ -151,6 +145,13 @@ void Board::DrawHighlight(int originX, int originY, int getX, int getY, const st
         else
             DrawRectangleLinesEx( {(float)xi, (float)yi, (float)cell_size, (float)cell_size}, 4, GREEN);
     }
+}
+
+void Board::DrawHighLight(int originX, int originY, int getX, int getY) const
+{
+    int xi = originX + getX * cell_size;
+    int yi = originY + getY * cell_size;
+    DrawRectangleLinesEx({(float)xi, (float)yi, (float)cell_size, (float)cell_size}, 4, RED);
 }
 
 void Board::DrawPiece(int truc_ngang, int truc_doc, const TextureCache& cache) const
@@ -166,3 +167,5 @@ void Board::DrawPiece(int truc_ngang, int truc_doc, const TextureCache& cache) c
             target->Draw_texture(posX, posY, cache);
         }
 }
+
+

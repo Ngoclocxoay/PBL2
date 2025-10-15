@@ -18,6 +18,7 @@ class Board
         void DrawBoardBase(int, int) const;
         void DrawHighlight(int, int, int, int, const std::vector<MoveHint>&) const;
         void DrawPiece(int, int, const TextureCache&) const;
+        void DrawHighLight(int, int, int, int) const;
 
         //Piece access method
         Piece* GetPiece(int, int) const;
@@ -27,4 +28,5 @@ class Board
         //Valid check
         bool isInBounds(int, int) const;
         bool checkEmpty(int, int) const;
+
 };

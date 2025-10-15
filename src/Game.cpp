@@ -12,6 +12,7 @@ Game::Game(int width, int height)
 {
     originX = (width - Size)/2;
     originY = (height - Size)/2;
+    this->gameOver = false;
 }
 
 Game::~Game()
@@ -28,8 +29,20 @@ void Game::Init()
     BOARD.Initialize();
 }
 
-void Game::Render()
+void Game::ResetGame()
 {
+    BOARD.Initialize();  // reset lại bàn cờ
+    currentTurn = Turn::White;
+    get_horizontal = get_vertical = -1;
+    selX = selY = -1;
+    kingX = kingY = -1;
+    moveHints.clear();
+    gameOver = false;
+    winnerTurn = Turn::White;
+}
+
+void Game::Render()
+{   
     HandleInput();
     Draw_frame();
 }
@@ -43,16 +56,41 @@ void Game::Draw_frame() const
     
     BOARD.DrawBoardBase(originX, originY);
     BOARD.DrawHighlight(originX, originY, this->get_horizontal, this->get_vertical, moveHints);
+    if (inCheck())
+    {
+        BOARD.DrawHighLight(originX, originY, kingX, kingY);
+    }
     BOARD.DrawPiece(originX, originY, cache);
+
+    //Highlight VUa khi bi chieu
+    
     
     const char* turnText = (currentTurn == Turn::White) ? "White's turn" : "Black's turn";
     DrawText(turnText, 10, 10, 20, (Color){0, 0, 0, 255});
+
+    if (gameOver)
+    {
+        const char* wintext = (winnerTurn == Turn::White) ? "CheckMate - White Win" : "CheckMate - Black Win";
+
+        DrawRectangle(0, 0, screenWidth, screenHeight, Color{0, 0, 0, 120});
+
+        int fontsize = 40;
+        int textwidth = MeasureText(wintext, fontsize);
+        DrawText(wintext, (screenWidth - textwidth)/2, screenHeight/2 - fontsize, fontsize, Color{255, 255, 255, 255});
+
+        // thêm hướng dẫn restart
+        const char* restartText = "Press [R] to start a new game";
+        int restartWidth = MeasureText(restartText, 20);
+        DrawText(restartText, (screenWidth - restartWidth)/2, screenHeight/2 + 40, 20, WHITE);
+    }
 
     EndDrawing();
 }
 
 void Game::HandleInput()
 {
+    if (gameOver) return;
+
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
     {
         Vector2 mousePos = GetMousePosition();
@@ -90,6 +128,16 @@ void Game::HandleInput()
                     moveHints.clear();
 
                     currentTurn = (currentTurn == Turn::White) ? Turn::Black : Turn::White;
+                    
+                    //Tìm vị trí của vua mỗi lần đi xog lượt
+                    findKing();
+
+                    bool flag = checkMate();
+                    if (flag)
+                    {
+                        this->gameOver = true;
+                        this->winnerTurn = (currentTurn == Turn::White) ? Turn::Black : Turn::White;
+                    }
                 }
                 return;
             }
@@ -171,6 +219,69 @@ void Game::Run()
     while(!WindowShouldClose())
     {
         Render();
+
+        if (gameOver && IsKeyPressed(KEY_R))
+        {
+            ResetGame();
+        }
     }
 }
 
+void Game::findKing()
+{
+    kingX = -1;
+    kingY = -1;
+    Colors current = (currentTurn == Turn::White) ? Colors::White : Colors::Black;
+    
+    for (int x = 0; x < 8; x++)
+        for (int y = 0; y < 8; y++)
+        {
+            const Piece* target = BOARD.GetPiece(x, y);       
+            if (target && target->getType() == PieceType::KING && target->getColor() == current) 
+            {
+                kingX = x;
+                kingY = y;
+                return;
+            }
+        }
+}
+
+bool Game::inCheck() const 
+{   
+    Colors current = (currentTurn == Turn::White) ? Colors::White : Colors::Black;
+
+    for (int fromX = 0; fromX < 8; fromX++)
+        for (int fromY = 0; fromY < 8; fromY++)
+        {
+            const Piece* start = BOARD.GetPiece(fromX, fromY);
+            if (start && start->getColor() != current)
+            {
+                bool check = start->isValidMove(fromX, fromY, kingX, kingY, &BOARD);
+                if (check) 
+                {
+                    return true;
+                }
+            }
+        }
+    return false;
+}
+
+bool Game::hasAnyLegalMove() const
+{
+    const Piece* king = BOARD.GetPiece(kingX, kingY);
+    
+    int dirX[] = {0, 1, 1, 1, 0, -1, -1, -1};
+    int dirY[] = {1, 1, 0, -1, -1, -1, 0, 1};
+
+    for (int i = 0; i < 8; i++)
+    {
+        if (king->isValidMove(kingX, kingY, kingX + dirX[i], kingY + dirY[i], &BOARD)) return true;
+    }
+    return false;
+}
+
+bool Game::checkMate() const
+{
+    if (inCheck() && hasAnyLegalMove() == false) return true;
+    return false;
+}

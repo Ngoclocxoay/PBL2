@@ -8,4 +8,6 @@ class Pawn : public Piece
         virtual Piece* clone() const override { return new Pawn(*this);}
 
         virtual bool isValidMove(int, int, int, int, const Board*) const override;
+
+        bool killPiece(int, int, int, int, const Board*) const;
 };
