@@ -8,7 +8,7 @@ using namespace std;
 vector<MoveHint> moveHints;
 
 Game::Game(int width, int height)
-    : screenWidth(width), screenHeight(height), currentTurn(Turn::White), get_horizontal(-1), get_vertical(-1), selX(-1), selY(-1)
+    : screenWidth(width), screenHeight(height), currentTurn(Turn::White), get_horizontal(-1), get_vertical(-1), selX(-1), selY(-1), kingX(-1), kingY(-1)
 {
     originX = (width - Size)/2;
     originY = (height - Size)/2;
@@ -35,7 +35,7 @@ void Game::ResetGame()
     currentTurn = Turn::White;
     get_horizontal = get_vertical = -1;
     selX = selY = -1;
-    kingX = kingY = -1;
+    kingX = -1; kingY = -1;
     moveHints.clear();
     gameOver = false;
     winnerTurn = Turn::White;
@@ -56,9 +56,13 @@ void Game::Draw_frame() const
     
     BOARD.DrawBoardBase(originX, originY);
     BOARD.DrawHighlight(originX, originY, this->get_horizontal, this->get_vertical, moveHints);
-    if (inCheck())
+
+    Colors turnColor = (currentTurn == Turn::White) ? Colors::White : Colors::Black;
+    int xVal, yVal;
+    if (isInCheck(turnColor, xVal, yVal))
     {
-        BOARD.DrawHighLight(originX, originY, kingX, kingY);
+        
+        BOARD.DrawHighLight(originX, originY, xVal, yVal);
     }
     BOARD.DrawPiece(originX, originY, cache);
 
@@ -128,11 +132,9 @@ void Game::HandleInput()
                     moveHints.clear();
 
                     currentTurn = (currentTurn == Turn::White) ? Turn::Black : Turn::White;
-                    
-                    //Tìm vị trí của vua mỗi lần đi xog lượt
-                    findKing();
+                    Colors current = (currentTurn == Turn::White) ? Colors::White : Colors::Black;
 
-                    bool flag = checkMate();
+                    bool flag = checkMate(current);
                     if (flag)
                     {
                         this->gameOver = true;
@@ -158,10 +160,20 @@ void Game::HandleInput()
                         for (int toY = 0; toY < 8; toY++)
                         {
                             if (p->isValidMove(xVal, yVal, toX, toY, &BOARD))
-                            {
-                                const Piece* target = BOARD.GetPiece(toX, toY);
-                                bool cap = (target && target->getColor() != p->getColor());
-                                moveHints.push_back({toX, toY, cap});
+                            {   
+                                StateMove st;
+                                if (!BOARD.RawMoveNoSideEffect(xVal, yVal, toX, toY, &st)) continue;
+
+                                bool ok = isInCheck(turnColor);
+
+                                BOARD.RawUndoNoSideEffect(st);
+                                
+                                if (!ok)
+                                {
+                                    const Piece* target = BOARD.GetPiece(toX, toY);
+                                    bool cap = (target && target->getColor() != p->getColor());
+                                    moveHints.push_back({toX, toY, cap});
+                                }
                             }
                         }
                     }
@@ -195,11 +207,22 @@ void Game::HandleInput()
                 {
                     if (selected->isValidMove(xVal, yVal, toX, toY, &BOARD))
                     {
-                        const Piece* target = BOARD.GetPiece(toX, toY);
-                        bool canCapture;
-                        if (target && target->getColor() != selected->getColor()) canCapture = true;
-                        else canCapture = false;
-                        moveHints.push_back({toX, toY, canCapture});
+                        StateMove st;
+
+                        if (!BOARD.RawMoveNoSideEffect(xVal, yVal, toX, toY, &st)) continue;
+
+                        bool ok = isInCheck(turnColor);
+
+                        BOARD.RawUndoNoSideEffect(st);
+
+                        if (!ok)
+                        {
+                            const Piece* target = BOARD.GetPiece(toX, toY);
+                            bool canCapture;
+                            if (target && target->getColor() != selected->getColor()) canCapture = true;
+                            else canCapture = false;
+                            moveHints.push_back({toX, toY, canCapture});
+                        }
                     }       
                 } 
             }
@@ -227,36 +250,34 @@ void Game::Run()
     }
 }
 
-void Game::findKing()
-{
-    kingX = -1;
-    kingY = -1;
-    Colors current = (currentTurn == Turn::White) ? Colors::White : Colors::Black;
-    
+
+
+bool Game::isInCheck(Colors side) const
+{   
+    int kX = -1;
+    int kY = -1;
+
     for (int x = 0; x < 8; x++)
         for (int y = 0; y < 8; y++)
         {
-            const Piece* target = BOARD.GetPiece(x, y);       
-            if (target && target->getType() == PieceType::KING && target->getColor() == current) 
+            const Piece* tmp = BOARD.GetPiece(x, y);
+            if (tmp && tmp->getType() == PieceType::KING && tmp->getColor() == side)
             {
-                kingX = x;
-                kingY = y;
-                return;
+                kX = x;
+                kY = y;
+                goto foundKing;
             }
         }
-}
-
-bool Game::inCheck() const 
-{   
-    Colors current = (currentTurn == Turn::White) ? Colors::White : Colors::Black;
+    foundKing:
+    if (kX == -1 && kY == -1) return false;
 
     for (int fromX = 0; fromX < 8; fromX++)
         for (int fromY = 0; fromY < 8; fromY++)
         {
             const Piece* start = BOARD.GetPiece(fromX, fromY);
-            if (start && start->getColor() != current)
+            if (start && start->getColor() != side)
             {
-                bool check = start->isValidMove(fromX, fromY, kingX, kingY, &BOARD);
+                bool check = start->isValidMove(fromX, fromY, kX, kY, &BOARD);
                 if (check) 
                 {
                     return true;
@@ -266,22 +287,76 @@ bool Game::inCheck() const
     return false;
 }
 
-bool Game::hasAnyLegalMove() const
+bool Game::isInCheck(Colors side, int& outX, int& outY) const
 {
-    const Piece* king = BOARD.GetPiece(kingX, kingY);
-    
-    int dirX[] = {0, 1, 1, 1, 0, -1, -1, -1};
-    int dirY[] = {1, 1, 0, -1, -1, -1, 0, 1};
+    int kX = -1;
+    int kY = -1;
 
-    for (int i = 0; i < 8; i++)
-    {
-        if (king->isValidMove(kingX, kingY, kingX + dirX[i], kingY + dirY[i], &BOARD)) return true;
-    }
+    for (int x = 0; x < 8; x++)
+        for (int y = 0; y < 8; y++)
+        {
+            const Piece* tmp = BOARD.GetPiece(x, y);
+            if (tmp && tmp->getType() == PieceType::KING && tmp->getColor() == side)
+            {
+                kX = x;
+                kY = y;
+                goto foundKing;
+            }
+        }
+    foundKing:
+    if (kX == -1 && kY == -1) return false;
+    outX = kX;
+    outY = kY;
+
+    for (int fromX = 0; fromX < 8; fromX++)
+        for (int fromY = 0; fromY < 8; fromY++)
+        {
+            const Piece* start = BOARD.GetPiece(fromX, fromY);
+            if (start && start->getColor() != side)
+            {
+                bool check = start->isValidMove(fromX, fromY, kX, kY, &BOARD);
+                if (check) 
+                {
+                    return true;
+                }
+            }
+        }
     return false;
 }
 
-bool Game::checkMate() const
+bool Game::hasAnyLegalMove(Colors side) 
 {
-    if (inCheck() && hasAnyLegalMove() == false) return true;
+    
+
+    for (int fromX = 0; fromX < 8; fromX++)
+        for (int fromY = 0; fromY < 8; fromY++)
+        {
+            const Piece* temp = BOARD.GetPiece(fromX, fromY);
+            if (temp && temp->getColor() == side)
+            {
+                for (int toX = 0; toX < 8; toX++)
+                    for (int toY = 0; toY < 8; toY++)
+                    {
+                        if (temp->isValidMove(fromX, fromY, toX, toY, &BOARD))
+                        {
+                            StateMove st;
+
+                            if (!BOARD.RawMoveNoSideEffect(fromX, fromY, toX, toY, &st)) continue;
+
+                            bool ok = isInCheck(side);
+
+                            BOARD.RawUndoNoSideEffect(st);
+
+                            if (!ok) return true;
+                        }
+                    }
+            }
+        }
+    return false;
+}
+
+bool Game::checkMate(Colors side) 
+{
+    if (isInCheck(side) && hasAnyLegalMove(side) == false) return true;
     return false;
 }

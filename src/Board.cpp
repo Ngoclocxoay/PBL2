@@ -108,6 +108,29 @@ bool Board::checkEmpty(int x, int y) const
     return !board[x][y];
 }
 
+bool Board::RawMoveNoSideEffect(int fromX, int fromY, int toX, int toY, StateMove* st) 
+{
+    Piece* p = this->GetPiece(fromX, fromY);
+    if (!p) return false;
+
+    st->fromX = fromX; st->fromY = fromY;
+    st->toX = toX; st->toY = toY;
+    st->moved = p;
+    st->capture = this->GetPiece(toX, toY);
+
+    board[fromX][fromY] = nullptr;
+    board[toX][toY] = p;
+
+    //Cho nhap thanh or enpassing
+
+    return true;
+}
+
+void Board::RawUndoNoSideEffect(const StateMove& st)
+{
+    board[st.fromX][st.fromY] = st.moved;
+    board[st.toX][st.toY] = st.capture;
+}
 /* DRAW */
 
 void Board::DrawBoardBase(int truc_ngang, int truc_doc) const

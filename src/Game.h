@@ -33,11 +33,10 @@ class Game
 
         void HandleInput();
 
-        void findKing();
+        bool hasAnyLegalMove(Colors);
 
-        bool hasAnyLegalMove() const;
-
-        bool inCheck() const;
+        bool isInCheck(Colors) const;
+        bool isInCheck(Colors, int&, int&) const;
         
-        bool checkMate () const;
+        bool checkMate (Colors);
 };

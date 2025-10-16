@@ -5,6 +5,14 @@
 
 struct MoveHint { int x, y; bool canCapture;};
 
+struct StateMove
+{
+    int fromX, fromY;
+    int toX, toY;
+    Piece* moved;
+    Piece* capture;
+};
+
 class Board
 {
     private:
@@ -25,8 +33,13 @@ class Board
        // void SetPiece( int, int,int, int);
         bool MovePiece(int, int, int, int);
 
+        //Gia lap nuoc di
+        bool RawMoveNoSideEffect(int, int, int, int, StateMove*);
+        void RawUndoNoSideEffect(const StateMove&);
+
         //Valid check
         bool isInBounds(int, int) const;
         bool checkEmpty(int, int) const;
 
 };
+
