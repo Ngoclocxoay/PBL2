@@ -1,7 +1,9 @@
 #pragma once
 #include "Piece.h"
 #include "TextureCache.h"
-#include <vector>
+#include "Move.h"
+#include <stack>  //TODO : tự build lại sau
+#include <vector> //TODO : sau tự build lại
 
 struct MoveHint { int x, y; bool canCapture;};
 
@@ -17,6 +19,7 @@ class Board
 {
     private:
         Piece* board[8][8];
+        std::stack<Move> moveHistory;
     public:
         Board();
         ~Board();
@@ -30,8 +33,8 @@ class Board
 
         //Piece access method
         Piece* GetPiece(int, int) const;
-       // void SetPiece( int, int,int, int);
-        bool MovePiece(int, int, int, int);
+        bool MakeMove(const Move&);
+        void UndoMove();
 
         //Gia lap nuoc di
         bool RawMoveNoSideEffect(int, int, int, int, StateMove*);
@@ -40,6 +43,8 @@ class Board
         //Valid check
         bool isInBounds(int, int) const;
         bool checkEmpty(int, int) const;
+
+        
 
 };
 

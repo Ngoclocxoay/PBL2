@@ -13,19 +13,9 @@ Piece::~Piece()
 {
 }
 
-/* bool Piece::isValidMove(int fromX, int fromY, int toX, int toY, const Board *board) const
-{
-    if (!board) return false;
-    Piece *targetPiece = board->GetPiece(toX, toY);
-    if ( targetPiece->getColor() == this->color) return false;
-    return false;
-    return true;
-} */
 
 void Piece::Draw_texture(int x, int y, const TextureCache &cache) const
 {
-    /* CODE */
-    //if (type == PieceType::NONE) return;
     const Texture2D& tex = cache.GetPiece(type, color);
     if (tex.id == 0) return ;
     float scale = (float)cell_size / tex.width; //scale theo chieu ngang o

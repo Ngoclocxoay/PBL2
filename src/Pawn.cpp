@@ -18,8 +18,8 @@ bool Pawn::isValidMove(int fromX, int fromY, int toX, int toY, const Board *boar
     const Piece* target = board->GetPiece(toX, toY);
     if (target && target->getColor() == this->getColor()) return false;
     
-    int dir = (getColor() == Colors::White) ? -1 : 1; //trang di len, den di xuong
-
+    int dir       = (getColor() == Colors::White) ? -1 : 1; //trang di len, den di xuong
+    int startRank = (getColor() == Colors::White) ? 6 : 1;
     int dx = toX - fromX;
     int dy = toY - fromY;
 
@@ -31,12 +31,10 @@ bool Pawn::isValidMove(int fromX, int fromY, int toX, int toY, const Board *boar
     }
 
     //đi thẳng 2 ô từ ô xuất phát
-    if (dx == 0 && dy == 2*dir)
+    if (dx == 0 && dy == 2*dir && fromY == startRank) 
     {
-        if (this->getMoved()) return false;
         const Piece* mid = board->GetPiece(fromX, fromY + dir);
-        if (!mid && !target) return true;
-        return false;
+        return (mid == nullptr && target == nullptr);
     }
 
     //ăn chéo

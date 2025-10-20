@@ -21,7 +21,7 @@ class Piece
         //Get method
         PieceType getType() const {return type; }
         Colors getColor() const {return color; }
-        bool getMoved() const {return hasmoved; }
+        bool getHasMoved() const {return hasmoved; }
         void setHasMoved(bool moved) {hasmoved = moved; }
 
         void Draw_texture(int, int, const TextureCache&) const; 

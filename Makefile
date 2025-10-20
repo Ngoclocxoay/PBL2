@@ -7,7 +7,7 @@ RAYLIB_INC := $(RAYLIB_DIR)/src
 RAYLIB_LIB := $(RAYLIB_DIR)/src
 
 TARGET  := chess.exe
-SOURCES := src/main.cpp src/Game.cpp src/Board.cpp src/Piece.cpp src/TextureCache.cpp src/library.cpp src/King.cpp src/Queen.cpp src/Bishop.cpp src/Knight.cpp src/Rook.cpp src/Pawn.cpp
+SOURCES := src/main.cpp src/Game.cpp src/Board.cpp src/Piece.cpp src/TextureCache.cpp src/library.cpp src/King.cpp src/Queen.cpp src/Bishop.cpp src/Knight.cpp src/Rook.cpp src/Pawn.cpp src//AI.cpp
 OBJECTS := $(SOURCES:.cpp=.o)
 
 CXXFLAGS := -std=c++17 -Wall -Wextra -I$(RAYLIB_INC) -Isrc -I.

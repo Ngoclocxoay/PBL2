@@ -78,26 +78,6 @@ Piece* Board::GetPiece(int x, int y) const
     return board[x][y];
 }
 
-bool Board::MovePiece(int fromX, int fromY, int toX, int toY)
-{
-    //Double check
-    if(!isInBounds(toX, toY) || !isInBounds(fromX, fromY)) return false;
-    Piece* mover = board[fromX][fromY];
-    if (!mover) return false;
-    if (fromX == toX && fromY == toY) return false;
-
-    if (board[toX][toY] && board[toX][toY]->getColor() == mover->getColor()) return false;
-
-    if (board[toX][toY]) { delete board[toX][toY]; board[toX][toY] = nullptr; }
-
-    board[toX][toY] = mover;
-    board[fromX][fromY] = nullptr;
-    board[toX][toY]->setHasMoved(true);
-
-    return true;
-}
-
-
 bool Board::isInBounds(int x, int y) const
 {
     return (x >= 0 && x < 8) && (y >= 0 && y < 8);
@@ -131,6 +111,70 @@ void Board::RawUndoNoSideEffect(const StateMove& st)
     board[st.fromX][st.fromY] = st.moved;
     board[st.toX][st.toY] = st.capture;
 }
+
+
+bool Board::MakeMove(const Move& m) {
+    if (!isInBounds(m.fromX, m.fromY) || !isInBounds(m.toX, m.toY)) return false;
+
+    Piece* mover = board[m.fromX][m.fromY];
+    if (!mover) return false;
+    if (m.fromX == m.toX && m.fromY == m.toY) return false;
+    if (board[m.toX][m.toY] && board[m.toX][m.toY]->getColor() == mover->getColor()) return false;
+    
+    Move rec       = m; //FromX, fromY, toX, toY
+    rec.moverColor = mover->getColor();
+    rec.moverType  = mover->getType();
+    rec.wasPromote = false;
+    rec.captured   = board[m.toX][m.toY];   
+
+    board[m.toX][m.toY]     = mover;
+    board[m.fromX][m.fromY] = nullptr;
+    rec.preHasMoved = mover->getHasMoved();
+    mover->setHasMoved(true);
+
+    if (mover->getType() == PieceType::PAWN && (m.toY == 0 || m.toY == 7))
+    {   
+        delete board[m.toX][m.toY];
+        board[m.toX][m.toY] = new Queen(rec.moverColor);
+        rec.wasPromote      = true;
+        rec.promoteTo       = PieceType::QUEEN;
+    }
+
+    moveHistory.push(rec);
+    return true;
+
+}
+
+void Board::UndoMove() 
+{
+    if (moveHistory.empty()) return;
+    Move last = moveHistory.top();
+    moveHistory.pop();
+
+    if (last.wasPromote)
+    {
+        delete board[last.toX][last.toY];
+        board[last.toX][last.toY]     = last.captured;
+        board[last.fromX][last.fromY] = new Pawn(last.moverColor);
+        board[last.fromX][last.fromY]->setHasMoved(true);
+
+    }
+    else
+    {
+        Piece* mover                  = board[last.toX][last.toY];
+        if (mover) mover->setHasMoved(last.preHasMoved);
+        board[last.fromX][last.fromY] = mover;
+        board[last.toX][last.toY]     = last.captured;
+    }
+
+    
+    
+}
+
+
+
+
+
 /* DRAW */
 
 void Board::DrawBoardBase(int truc_ngang, int truc_doc) const
