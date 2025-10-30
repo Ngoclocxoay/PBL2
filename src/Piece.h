@@ -23,6 +23,7 @@ class Piece
         Colors getColor() const {return color; }
         bool getHasMoved() const {return hasmoved; }
         void setHasMoved(bool moved) {hasmoved = moved; }
+        void setType(PieceType t) {type = t;}
 
         void Draw_texture(int, int, const TextureCache&) const; 
 

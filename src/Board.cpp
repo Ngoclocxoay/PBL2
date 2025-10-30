@@ -88,30 +88,6 @@ bool Board::checkEmpty(int x, int y) const
     return !board[x][y];
 }
 
-bool Board::RawMoveNoSideEffect(int fromX, int fromY, int toX, int toY, StateMove* st) 
-{
-    Piece* p = this->GetPiece(fromX, fromY);
-    if (!p) return false;
-
-    st->fromX = fromX; st->fromY = fromY;
-    st->toX = toX; st->toY = toY;
-    st->moved = p;
-    st->capture = this->GetPiece(toX, toY);
-
-    board[fromX][fromY] = nullptr;
-    board[toX][toY] = p;
-
-    //Cho nhap thanh or enpassing
-
-    return true;
-}
-
-void Board::RawUndoNoSideEffect(const StateMove& st)
-{
-    board[st.fromX][st.fromY] = st.moved;
-    board[st.toX][st.toY] = st.capture;
-}
-
 
 bool Board::MakeMove(const Move& m) {
     if (!isInBounds(m.fromX, m.fromY) || !isInBounds(m.toX, m.toY)) return false;
@@ -121,25 +97,74 @@ bool Board::MakeMove(const Move& m) {
     if (m.fromX == m.toX && m.fromY == m.toY) return false;
     if (board[m.toX][m.toY] && board[m.toX][m.toY]->getColor() == mover->getColor()) return false;
     
-    Move rec       = m; //FromX, fromY, toX, toY
-    rec.moverColor = mover->getColor();
-    rec.moverType  = mover->getType();
-    rec.wasPromote = false;
-    rec.captured   = board[m.toX][m.toY];   
 
-    board[m.toX][m.toY]     = mover;
-    board[m.fromX][m.fromY] = nullptr;
+    //Backup
+    Move rec        = m; //FromX, fromY, toX, toY
+    rec.moverColor  = mover->getColor();
+    rec.moverType   = mover->getType();
+    rec.wasPromote  = false;
+    rec.wasCastling = false;
+    rec.captured    = board[m.toX][m.toY];   
     rec.preHasMoved = mover->getHasMoved();
-    mover->setHasMoved(true);
 
+    //Promote
     if (mover->getType() == PieceType::PAWN && (m.toY == 0 || m.toY == 7))
     {   
-        delete board[m.toX][m.toY];
+        
+        board[m.toX][m.toY]     = mover;
+        board[m.fromX][m.fromY] = nullptr;
         board[m.toX][m.toY] = new Queen(rec.moverColor);
         rec.wasPromote      = true;
-        rec.promoteTo       = PieceType::QUEEN;
+        moveHistory.push(rec);
+        return true;
     }
+    //Castling
+    else if (mover->getType() == PieceType::KING)
+    {
+        int dX = abs(m.fromX - m.toX);
+        int dY = abs(m.fromY - m.toY);
 
+        if (dY == 0 && dX == 2)
+        {
+            const Piece* rook = (rec.toX > rec.fromX) ? board[7][rec.toY] : board[0][rec.toY];
+            if (!rook) return false;
+            if (rook->getType() != PieceType::ROOK) return false;
+            board[m.toX][m.toY] = mover;
+            if (rec.fromX < rec.toX)
+            {
+                //King side
+                board[7][rec.toY]->setHasMoved(true);
+                board[5][rec.toY] = board[7][rec.toY];
+                board[7][rec.toY] = nullptr;
+            }
+            else 
+            {
+                //Queen side
+                board[0][rec.toY]->setHasMoved(true);
+                board[3][rec.toY] = board[0][rec.toY];
+                board[0][rec.toY] = nullptr;
+            }
+            board[m.fromX][m.fromY] = nullptr;
+            mover->setHasMoved(true);
+            rec.wasCastling     = true;
+        }
+        else
+        {
+            board[m.toX][m.toY] = mover;
+            board[m.fromX][m.fromY] = nullptr;
+            mover->setHasMoved(true);
+        }      
+    }
+    else
+    {
+        board[m.toX][m.toY] = mover;
+        board[m.fromX][m.fromY] = nullptr;
+        mover->setHasMoved(true);
+        
+    }
+    
+    
+    
     moveHistory.push(rec);
     return true;
 
@@ -156,8 +181,26 @@ void Board::UndoMove()
         delete board[last.toX][last.toY];
         board[last.toX][last.toY]     = last.captured;
         board[last.fromX][last.fromY] = new Pawn(last.moverColor);
-        board[last.fromX][last.fromY]->setHasMoved(true);
+        board[last.fromX][last.fromY]->setHasMoved(last.preHasMoved);
 
+    }
+    else if (last.wasCastling)
+    {
+        board[last.fromX][last.fromY] = board[last.toX][last.toY];
+        board[last.fromX][last.fromY]->setHasMoved(false);
+        board[last.toX][last.toY]     = nullptr;
+        if (last.toX > last.fromX)
+        {
+            board[7][last.toY] = board[5][last.toY];
+            board[5][last.toY] = nullptr;
+            board[7][last.toY]->setHasMoved(false);
+        }
+        else
+        {
+            board[0][last.toY] = board[3][last.toY];
+            board[3][last.toY] = nullptr;
+            board[0][last.toY]->setHasMoved(false);
+        }
     }
     else
     {
@@ -166,11 +209,109 @@ void Board::UndoMove()
         board[last.fromX][last.fromY] = mover;
         board[last.toX][last.toY]     = last.captured;
     }
-
-    
-    
 }
 
+
+bool Board::MakeMoveEngine(Move& state)
+{
+    state.wasCastling = false;
+    state.wasPromote  = false;
+
+    Piece* mover         = board[state.fromX][state.fromY];
+    const Piece* capture = board[state.toX][state.toY]; 
+    if (!mover) return false;
+    if (state.fromX == state.toX && state.fromY == state.toY) return false;
+    if (capture && capture->getColor() == mover->getColor()) return false;
+
+
+    // save backup
+    state.captured   = board[state.toX][state.toY];    
+    
+
+    //Promote
+    if (mover->getType() == PieceType::PAWN && (state.toY == 0 || state.toY == 7))
+    {   
+        board[state.toX][state.toY] = mover;
+        board[state.fromX][state.fromY] = nullptr;
+        mover->setType(PieceType::QUEEN);
+        state.wasPromote = true;
+        return true;
+    }
+    //Castling
+    else if (mover->getType() == PieceType::KING)
+    {
+        int dX = abs(state.fromX - state.toX);
+        int dY = abs(state.fromY - state.toY);
+
+        if (dY == 0 && dX == 2)
+        {
+            const Piece* rook = (state.toX > state.fromX) ? board[7][state.toY] : board[0][state.toY];
+            if (!rook) return false;
+            if (rook->getType() != PieceType::ROOK) return false;
+            board[state.toX][state.toY]     = mover;
+            board[state.fromX][state.fromY] = nullptr;
+            state.wasCastling = true;
+            if (state.toX > state.fromX) 
+            {
+                //king side
+                board[5][state.toY] = board[7][state.toY];
+                board[7][state.toY] = nullptr;
+            }
+            else 
+            {
+                //queen side
+                board[3][state.toY] = board[0][state.toY];
+                board[0][state.toY] = nullptr;
+            }
+        }
+        else
+        {
+            //Vua di chuyen binh thuong
+            board[state.toX][state.toY]     = mover;
+            board[state.fromX][state.fromY] = nullptr;
+        }
+    }
+
+    else
+    {
+        board[state.toX][state.toY] = mover;
+        board[state.fromX][state.fromY] = nullptr;
+    }
+    
+    return true;
+}
+
+void Board::UndoMoveEngine(const Move& state)
+{
+    if (state.wasPromote)
+    {
+        board[state.fromX][state.fromY] = board[state.toX][state.toY];
+        board[state.fromX][state.fromY]->setType(PieceType::PAWN);
+        board[state.toX][state.toY]     = state.captured;
+    }
+    else if (state.wasCastling)
+    {   
+        if (state.toX > state.fromX)
+        {
+            board[state.fromX][state.fromY] = board[state.toX][state.toY];
+            board[state.toX][state.toY]     = nullptr;
+            board[7][state.toY]             = board[5][state.toY];
+            board[5][state.toY]             = nullptr;
+        }
+        else
+        {
+            board[state.fromX][state.fromY] = board[state.toX][state.toY];
+            board[state.toX][state.toY]     = nullptr;
+            board[0][state.toY]             = board[3][state.toY];
+            board[3][state.toY]             = nullptr;
+        }
+    }
+    else
+    {
+        board[state.fromX][state.fromY] = board[state.toX][state.toY];
+        board[state.toX][state.toY]     = state.captured;
+    }
+}
 
 
 
@@ -180,7 +321,7 @@ void Board::UndoMove()
 void Board::DrawBoardBase(int truc_ngang, int truc_doc) const
 {
     Color LightWood = Color{240, 217, 181, 255};
-    Color DarkWood = Color{181, 136, 99, 255};
+    Color DarkWood  = Color{181, 136, 99, 255};
 
     for (int row = 0; row < count; row++)
     {

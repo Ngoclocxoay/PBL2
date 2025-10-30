@@ -6,3 +6,9 @@ void swap(Piece *a, Piece *b)
     a = b;
     b = tmp;
 }
+
+int abs (int a)
+{
+    if (a < 0) return (-1)*a;
+    return a;
+}

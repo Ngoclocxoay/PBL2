@@ -2,24 +2,15 @@
 #include "Piece.h"
 #include "TextureCache.h"
 #include "Move.h"
-#include <stack>  //TODO : tự build lại sau
+#include "Stack.h"
 #include <vector> //TODO : sau tự build lại
 
-struct MoveHint { int x, y; bool canCapture;};
-
-struct StateMove
-{
-    int fromX, fromY;
-    int toX, toY;
-    Piece* moved;
-    Piece* capture;
-};
 
 class Board
 {
     private:
         Piece* board[8][8];
-        std::stack<Move> moveHistory;
+        Stack<Move> moveHistory;
     public:
         Board();
         ~Board();
@@ -37,8 +28,8 @@ class Board
         void UndoMove();
 
         //Gia lap nuoc di
-        bool RawMoveNoSideEffect(int, int, int, int, StateMove*);
-        void RawUndoNoSideEffect(const StateMove&);
+        bool MakeMoveEngine(Move&);
+        void UndoMoveEngine(const Move&);
 
         //Valid check
         bool isInBounds(int, int) const;

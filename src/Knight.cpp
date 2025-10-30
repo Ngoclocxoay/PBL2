@@ -1,11 +1,9 @@
 #include "Knight.h"
 #include "Board.h"
+#include "library.h"
 
 static inline bool inside(int x, int y) { return (0 <= x && x < 8) && (0 <= y && y < 8);}
-static inline int abs(int a) {
-    if (a < 0) return (-1)*a;
-    return a;
-}
+
 
 Knight::Knight(Colors c)
     : Piece(PieceType::KNIGHT, c)

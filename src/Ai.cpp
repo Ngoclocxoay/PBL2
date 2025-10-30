@@ -48,15 +48,19 @@ void ChessAI::GenerateLegalMoves(const Board& board, Side side, std::vector<Move
                     // di chuyển
                     if (!p->isValidMove(fx, fy, tx, ty, &board)) continue;
 
-                    Move mv{fx, fy, tx, ty, nullptr, nullptr, };
+                    Move mv{fx, fy, tx, ty};
                     const Piece* dst = board.GetPiece(tx, ty);
                     if (dst && dst->getColor() == me) continue; // tự ăn đồng đội = break
-                    out.push_back(mv);
+                    Board& b = const_cast<Board&>(board);
+                    if (!b.MakeMove(mv)) continue;
+                    bool ischeck = isInCheck(me, &b);
+                    b.UndoMove();
+                    if (!ischeck) out.push_back(mv);
                 }
         }
 }
 
-// ====== MINIMAX ======
+// ====== MINIMAX + ALPHA-BETA ======
 int ChessAI::Search(Board& board, int d, int alpha, int beta, Side sideToMove, Side pov) {
     if (d == 0) return Evaluate(board, pov);
 
@@ -71,29 +75,33 @@ int ChessAI::Search(Board& board, int d, int alpha, int beta, Side sideToMove, S
         return (cb != nullptr) < (ca != nullptr);
     });
 
-    if (sideToMove == pov) {
+    if (sideToMove == pov) 
+    {
         int best = INT_MIN/2;
         for (auto mv : moves) {
-            board.MakeMove(mv);
-            int sc = Search(board, d-1, alpha, beta, (sideToMove==Side::White?Side::Black:Side::White), pov);
+            if (!board.MakeMove(mv)) continue;
+            int sc = Search(board, d-1, alpha, beta, (sideToMove==Side::White?Side::Black:Side::White), pov); //MINIMIZE
             board.UndoMove();
             if (sc > best) best = sc;
             if (best > alpha) alpha = best;
             if (alpha >= beta) break; 
         }
         return best;
-        } else {
-            int best = INT_MAX/2;
-            for (auto mv : moves) {
-                board.MakeMove(mv);
-                int sc = Search(board, d-1, alpha, beta, (sideToMove==Side::White?Side::Black:Side::White), pov);
-                board.UndoMove();
-                if (sc < best) best = sc;
-                if (best < beta) beta = best;
-                if (alpha >= beta) break; 
-            }
-            return best;
+    }
+    else 
+    {
+        int best = INT_MAX/2;
+        for (auto mv : moves) 
+        {
+            if (!board.MakeMove(mv)) continue;
+            int sc = Search(board, d-1, alpha, beta, (sideToMove==Side::White?Side::Black:Side::White), pov); //MAXIMIZE
+            board.UndoMove();
+            if (sc < best) best = sc;
+            if (best < beta) beta = best;
+            if (alpha >= beta) break; 
         }
+        return best;
+    }
 }
 
 bool ChessAI::FindBestMove(Board& board, Side sideToMove, Move& outBest) {
@@ -105,7 +113,7 @@ bool ChessAI::FindBestMove(Board& board, Side sideToMove, Move& outBest) {
     Move best = moves[0];
 
     for (auto mv : moves) {
-        board.MakeMove(mv);
+        if (!board.MakeMove(mv)) continue;
         int sc = Search(board, depth-1, INT_MIN/2, INT_MAX/2,
                         (sideToMove==Side::White?Side::Black:Side::White),
                         sideToMove);
@@ -116,3 +124,39 @@ bool ChessAI::FindBestMove(Board& board, Side sideToMove, Move& outBest) {
     outBest = best;
     return true;
 }
+
+// =====HELPER======
+bool ChessAI::isInCheck(Colors side, const Board* board) const
+{
+    int kingX = -1;
+    int kingY = -1;
+    for (int x = 0; x < 8; x++)
+    for (int y = 0; y < 8; y++)
+    {
+        const Piece* target = board->GetPiece(x, y);
+        if (target)
+        {
+            if (target->getType() == PieceType::KING && target->getColor() == side)
+            {
+                kingX = x;
+                kingY = y;
+                goto foundKing;
+            }
+        }
+    }
+    foundKing:
+    if (kingX == -1 && kingY == -1) return false;
+
+    for (int fx = 0; fx < 8; fx++)
+    for (int fy = 0; fy < 8; fy++)
+    {
+        const Piece* atker = board->GetPiece(fx, fy);
+        if (atker)
+        {
+            if (atker->getColor() == side) continue;
+            if (atker->isValidMove(fx, fy, kingX, kingY, board)) return true;
+        }
+    }
+    return false;
+}
+

@@ -12,6 +12,12 @@ enum class GameMode {PvP, PvC};
 class Game
 {
     private:
+        // time
+        float whiteTimeLeft = 15.0f * 60.0f; 
+        float blackTimeLeft = 15.0f * 60.0f; 
+        bool playerIsWhite = true;
+        bool timersEnabled = true;
+        
         //Core Game
         int plyCount = 0;
         Board BOARD;
@@ -66,5 +72,7 @@ class Game
         
         void Run();
 
-        
+        // time
+        void UpdateTimers(float dt);
+        void DrawTimers() const;
 };

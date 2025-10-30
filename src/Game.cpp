@@ -4,6 +4,8 @@
 #include <vector>
 #include <cmath> //TODO : kiem tra neu tu build ddc thi lam
 #include <algorithm> //TODO : tu build lai
+#include <string>
+
 
 using namespace std;
 
@@ -81,12 +83,107 @@ void Game::ResetGame()
     gameOver = false;
     winnerTurn = Turn::White;
     plyCount = 0; //Quan trong de Undo an toan
+    
+    //time
+    whiteTimeLeft = 15.0f * 60.0f;
+    blackTimeLeft = 15.0f * 60.0f;
+    timersEnabled = true;
+    playerIsWhite = true;
+}
+
+void Game::UpdateTimers(float dt)
+{
+    if (!timersEnabled || state != GameState::Playing || gameOver) return;
+
+    if (mode == GameMode::PvC)
+    {
+        if (playerIsWhite && currentTurn == Turn::White)
+        {
+            whiteTimeLeft -= dt;
+            if (whiteTimeLeft <= 0.0f) { whiteTimeLeft = 0; gameOver = true; winnerTurn = Turn::Black; }
+        }
+        else if (!playerIsWhite && currentTurn == Turn::Black)
+        {
+            blackTimeLeft -= dt;
+            if (blackTimeLeft <= 0.0f) { blackTimeLeft = 0; gameOver = true; winnerTurn = Turn::White; }
+        }
+    }
+    else // PvP
+    {
+        if (currentTurn == Turn::White)
+        {
+            whiteTimeLeft -= dt;
+            if (whiteTimeLeft <= 0.0f) { whiteTimeLeft = 0; gameOver = true; winnerTurn = Turn::Black; }
+        }
+        else
+        {
+            blackTimeLeft -= dt;
+            if (blackTimeLeft <= 0.0f) { blackTimeLeft = 0; gameOver = true; winnerTurn = Turn::White; }
+        }
+    }
+}
+
+static std::string formatTime(float sec)
+{
+    if (sec < 0) sec = 0;
+    int m = (int)(sec / 60);
+    int s = (int)fmod(sec, 60);
+    char buf[16];
+    sprintf(buf, "%02d:%02d", m, s);
+    return buf;
+}
+
+void Game::DrawTimers() const
+{
+    int cx = originX + Size / 2;
+    int topY = originY - 60;
+    int bottomY = originY + Size + 10;
+    int w = 260, h = 48;
+    Color bg = {0, 0, 0, 150};
+
+    const Font& bigFont = (fontBold.texture.id) ? fontBold : GetFontDefault();
+    const Font& smallFont = (fontRegular.texture.id) ? fontRegular : GetFontDefault();
+
+    float bigSize = 22.0f;   
+    float smallSize = 16.0f; 
+
+    auto drawCenteredText = [&](const Font& f, const std::string& text, float centerX, float y, float size) {
+        Vector2 txtSz = MeasureTextEx(f, text.c_str(), size, 1.0f);
+        Vector2 pos = { centerX - txtSz.x/2.0f, y + (h - txtSz.y)/2.0f };
+        DrawTextEx(f, text.c_str(), pos, size, 1.0f, WHITE);
+    };
+
+    if (mode == GameMode::PvP)
+    {
+        Rectangle topRect = { (float)(cx - w/2), (float)topY, (float)w, (float)h };
+        Rectangle botRect = { (float)(cx - w/2), (float)bottomY, (float)w, (float)h };
+
+        DrawRectangleRec(topRect, bg);
+        DrawRectangleRec(botRect, bg);
+
+        std::string blackText = "Black: " + formatTime(blackTimeLeft);
+        std::string whiteText = "White: " + formatTime(whiteTimeLeft);
+
+        drawCenteredText(bigFont, blackText, (float)cx, (float)topY, bigSize);
+        drawCenteredText(bigFont, whiteText, (float)cx, (float)bottomY, bigSize);
+    }
+    else // PvC: chỉ vẽ đồng hồ người chơi ở dưới
+    {
+        Rectangle botRect = { (float)(cx - w/2), (float)bottomY, (float)w, (float)h };
+        DrawRectangleRec(botRect, bg);
+
+        float t = playerIsWhite ? whiteTimeLeft : blackTimeLeft;
+        std::string playerText = "Player: " + formatTime(t);
+
+        drawCenteredText(bigFont, playerText, (float)cx, (float)bottomY, bigSize);
+    }
 }
 
 void Game::Render()
 {   
     BeginDrawing();
     ClearBackground(RAYWHITE);
+    UpdateTimers(GetFrameTime());
 
     // === Phím nhanh: Reset & Undo khi đang chơi ===
     if (state == GameState::Playing) {
@@ -211,6 +308,7 @@ void Game::Draw_frame() const
             DrawText(restartText, (screenWidth - restartWidth)/2, screenHeight/2 + 40, 20, WHITE);
         }
     }
+    DrawTimers();
 }
 
 
@@ -250,7 +348,7 @@ void Game::HandleInput()
 
             if (legal)
             {   
-                Move mv{this->get_horizontal, this->get_vertical, xVal, yVal, nullptr, nullptr};
+                Move mv{this->get_horizontal, this->get_vertical, xVal, yVal};
                 if (BOARD.MakeMove(mv))
                 {   
                     plyCount++;
@@ -290,12 +388,12 @@ void Game::HandleInput()
                         {
                             if (p->isValidMove(xVal, yVal, toX, toY, &BOARD))
                             {   
-                                StateMove st;
-                                if (!BOARD.RawMoveNoSideEffect(xVal, yVal, toX, toY, &st)) continue;
+                                Move st{xVal, yVal, toX, toY};
+                                if (!BOARD.MakeMoveEngine(st)) continue;
 
                                 bool ok = isInCheck(turnColor);
 
-                                BOARD.RawUndoNoSideEffect(st);
+                                BOARD.UndoMoveEngine(st); /// Chú ý thay lại 
                                 
                                 if (!ok)
                                 {
@@ -336,13 +434,13 @@ void Game::HandleInput()
                 {
                     if (selected->isValidMove(xVal, yVal, toX, toY, &BOARD))
                     {
-                        StateMove st;
+                        Move st{xVal, yVal, toX, toY};
 
-                        if (!BOARD.RawMoveNoSideEffect(xVal, yVal, toX, toY, &st)) continue;
+                        if (!BOARD.MakeMoveEngine(st)) continue;
 
                         bool ok = isInCheck(turnColor);
 
-                        BOARD.RawUndoNoSideEffect(st);
+                        BOARD.UndoMoveEngine(st);
 
                         if (!ok)
                         {
@@ -452,13 +550,13 @@ bool Game::hasAnyLegalMove(Colors side)
                     {
                         if (temp->isValidMove(fromX, fromY, toX, toY, &BOARD))
                         {
-                            StateMove st;
+                            Move st{fromX, fromY, toX, toY};
 
-                            if (!BOARD.RawMoveNoSideEffect(fromX, fromY, toX, toY, &st)) continue;
+                            if (!BOARD.MakeMoveEngine(st)) continue;
 
                             bool ok = isInCheck(side);
 
-                            BOARD.RawUndoNoSideEffect(st);
+                            BOARD.UndoMoveEngine(st);
 
                             if (!ok) return true;
                         }
@@ -537,7 +635,6 @@ void Game::DoAIMove()
     }
 }
 
-
 void Game::UndoPlayerLast()
 {
     if (state != GameState::Playing) return;
@@ -569,6 +666,4 @@ void Game::UndoPlayerLast()
         plyCount--;
         currentTurn = (currentTurn == Turn::White) ? Turn::Black : Turn::White;
     }
-
-   // findKing();
 }
