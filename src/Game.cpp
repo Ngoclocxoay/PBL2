@@ -32,6 +32,7 @@ Game::Game(int width, int height)
 
 Game::~Game()
 {
+    //Unload Background
     if (bgSplash.id) UnloadTexture(bgSplash);
     if (bgMenu.id)   UnloadTexture(bgMenu);
 
@@ -186,13 +187,71 @@ void Game::Render()
     UpdateTimers(GetFrameTime());
 
     // === Phím nhanh: Reset & Undo khi đang chơi ===
-    if (state == GameState::Playing) {
-        if (IsKeyPressed(KEY_R)) ResetGame();
+    if (state == GameState::Playing) 
+    {
+        /* if (IsKeyPressed(KEY_R)) ResetGame();
         if (IsKeyPressed(KEY_U)) UndoPlayerLast();
+        if (IsKeyPressed(KEY_B))
+        {
+            state = GameState::ModeSelect;
+            ResetGame();
+        } */
+        
+        float btnW = 44.0f;
+        float btnH = 44.0f;
+        float gap  = 10.0f;
+
+        //Căn cột nút: sất bên trái bàn cờ
+        float columX = originX - (btnW + gap);
+        if (columX < 10.0f) columX = 10.0f; // nếu cửa sổ nhỏ quá thì neo vào lề
+
+        // Căn giữa theo chiều dọc quanh bàn cờ
+        float totalH = btnH * 3 + gap * 2;
+        float startY = originY + (Size - totalH) * 0.5f;
+
+
+        Rectangle restartBtn = {columX, startY + 0*(btnH + gap), btnW, btnH};
+        Rectangle undoBtn    = {columX, startY + 1*(btnH + gap), btnW, btnH};
+        Rectangle backBtn    = {columX, startY + 2*(btnH + gap), btnW, btnH};
+
+        
+        int iconSize = 28;
+        bool uiClick = false;
+
+        if (Button(restartBtn, "R", iconSize))
+        {
+            uiClick = true;
+            ResetGame();
+        }
+        if (Button(undoBtn, "U", iconSize))
+        {
+            uiClick = true;
+            UndoPlayerLast();
+        }
+        if (Button(backBtn, "B", iconSize))
+        {
+            uiClick = true;
+            state = GameState::ModeSelect;
+            ResetGame();
+        }
+        if (!uiClick)
+        {
+            HandleInput();
+        }
+        Draw_frame();
+        EndDrawing();
+        
+        if (!gameOver && aiEnabled && currentTurn == Turn::Black)  
+        {
+        DoAIMove();
+        }
+    return;
     }
 
-    if (state == GameState::Splash) {
+    if (state == GameState::Splash) 
+    {
         if (bgSplash.id) {
+            //Phong to ch
             DrawTexturePro(bgSplash,
                 {0,0,(float)bgSplash.width,(float)bgSplash.height},
                 {0,0,(float)screenWidth,(float)screenHeight},
@@ -206,7 +265,8 @@ void Game::Render()
         return;
     }
 
-    if (state == GameState::ModeSelect) {
+    if (state == GameState::ModeSelect) 
+    {
         if (bgMenu.id) {
             DrawTexturePro(bgMenu,
                 {0,0,(float)bgMenu.width,(float)bgMenu.height},
@@ -229,7 +289,8 @@ void Game::Render()
     Draw_frame();
     EndDrawing();
 
-    if (!gameOver && aiEnabled && currentTurn == Turn::Black) {
+    if (!gameOver && aiEnabled && currentTurn == Turn::Black) 
+    {
         DoAIMove();
     }
 }
@@ -574,8 +635,8 @@ bool Game::checkMate(Colors side)
 
 bool Game::Button(const Rectangle& r, const char* text, int fontSize) const
 {
-    Vector2 m = GetMousePosition();
-    bool hover = CheckCollisionPointRec(m, r);
+    Vector2 mPos = GetMousePosition();
+    bool hover = CheckCollisionPointRec(mPos, r);
 
     Color fill   = hover ? Color{255,255,255,180} : Color{255,255,255,140};
     Color border = BLACK;
@@ -644,24 +705,32 @@ void Game::UndoPlayerLast()
     get_horizontal = get_vertical = -1;
     moveHints.clear();
 
-    if (mode == GameMode::PvC) {
-        if (currentTurn == Turn::Black) {
+    if (mode == GameMode::PvC) 
+    {
+        if (currentTurn == Turn::Black) 
+        {
             BOARD.UndoMove();
             plyCount--;
             currentTurn = Turn::White;
-        } else {
-            if (plyCount >= 1) {
+        } 
+        else 
+        {
+            if (plyCount >= 1) 
+            {
                 BOARD.UndoMove(); // undo AI
                 plyCount--;
                 currentTurn = Turn::Black;
             }
-            if (plyCount >= 1) {
+            if (plyCount >= 1) 
+            {
                 BOARD.UndoMove(); // undo Người
                 plyCount--;
                 currentTurn = Turn::White;
             }
         }
-    } else {
+    } 
+    else 
+    {
         BOARD.UndoMove();
         plyCount--;
         currentTurn = (currentTurn == Turn::White) ? Turn::Black : Turn::White;

@@ -29,4 +29,15 @@ run: $(TARGET)
 clean:
 	del /Q $(TARGET) *.o
 
+cleanobj:
+	@echo Deleting all .o/.obj files...
+	@cmd /C "del /s /q *.o *.obj *.gch *.pch 2>nul"
+	@echo All .o/.obj files removed.
+
+cleanall:
+	@echo Deleting all .o/.obj, .exe, and .lib/.a files...
+	@cmd /C "del /s /q *.o *.obj *.gch *.pch *.exe *.a *.lib 2>nul"
+	@echo All build files removed.
+
+
 .PHONY: run clean
