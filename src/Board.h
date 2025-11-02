@@ -35,7 +35,7 @@ class Board
         bool isInBounds(int, int) const;
         bool checkEmpty(int, int) const;
 
-        
+        void ClearHistory();
 
 };
 

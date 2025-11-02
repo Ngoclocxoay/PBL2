@@ -5,7 +5,8 @@ class Piece;
 struct Move {
     int    fromX, fromY;
     int    toX, toY;
-    Piece* captured = nullptr;  
+    Piece* captured     = nullptr;  
+    Piece* promotedPawn  = nullptr;
 
     Colors moverColor   = Colors::None;
     PieceType moverType = PieceType::NONE;

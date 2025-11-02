@@ -52,9 +52,9 @@ void ChessAI::GenerateLegalMoves(const Board& board, Side side, std::vector<Move
                     const Piece* dst = board.GetPiece(tx, ty);
                     if (dst && dst->getColor() == me) continue; // tự ăn đồng đội = break
                     Board& b = const_cast<Board&>(board);
-                    if (!b.MakeMove(mv)) continue;
+                    if (!b.MakeMoveEngine(mv)) continue;
                     bool ischeck = isInCheck(me, &b);
-                    b.UndoMove();
+                    b.UndoMoveEngine(mv);
                     if (!ischeck) out.push_back(mv);
                 }
         }
@@ -79,9 +79,9 @@ int ChessAI::Search(Board& board, int d, int alpha, int beta, Side sideToMove, S
     {
         int best = INT_MIN/2;
         for (auto mv : moves) {
-            if (!board.MakeMove(mv)) continue;
+            if (!board.MakeMoveEngine(mv)) continue;
             int sc = Search(board, d-1, alpha, beta, (sideToMove==Side::White?Side::Black:Side::White), pov); //MINIMIZE
-            board.UndoMove();
+            board.UndoMoveEngine(mv);
             if (sc > best) best = sc;
             if (best > alpha) alpha = best;
             if (alpha >= beta) break; 
@@ -93,9 +93,9 @@ int ChessAI::Search(Board& board, int d, int alpha, int beta, Side sideToMove, S
         int best = INT_MAX/2;
         for (auto mv : moves) 
         {
-            if (!board.MakeMove(mv)) continue;
+            if (!board.MakeMoveEngine(mv)) continue;
             int sc = Search(board, d-1, alpha, beta, (sideToMove==Side::White?Side::Black:Side::White), pov); //MAXIMIZE
-            board.UndoMove();
+            board.UndoMoveEngine(mv);
             if (sc < best) best = sc;
             if (best < beta) beta = best;
             if (alpha >= beta) break; 
@@ -113,11 +113,11 @@ bool ChessAI::FindBestMove(Board& board, Side sideToMove, Move& outBest) {
     Move best = moves[0];
 
     for (auto mv : moves) {
-        if (!board.MakeMove(mv)) continue;
+        if (!board.MakeMoveEngine(mv)) continue;
         int sc = Search(board, depth-1, INT_MIN/2, INT_MAX/2,
                         (sideToMove==Side::White?Side::Black:Side::White),
                         sideToMove);
-        board.UndoMove();
+        board.UndoMoveEngine(mv);
 
         if (sc > bestScore) { bestScore = sc; best = mv; }
     }

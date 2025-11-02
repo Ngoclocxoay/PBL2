@@ -25,9 +25,15 @@ Move::Move(const Move& mv)
 
 void Move::operator=(const Move& mv)
 {
-    this->fromX    = mv.fromX;
-    this->fromY    = mv.fromY;
-    this->toX      = mv.toX;
-    this->toY      = mv.toY;
-    this->captured = mv.captured;
+    if (this == &mv) return;
+    fromX = mv.fromX; fromY = mv.fromY;
+    toX   = mv.toX;   toY   = mv.toY;
+    captured      = mv.captured;
+    promotedPawn  = mv.promotedPawn;   // nếu anh dùng cho ENGINE
+    moverColor    = mv.moverColor;
+    moverType     = mv.moverType;
+    promoteTo     = mv.promoteTo;
+    wasPromote    = mv.wasPromote;
+    preHasMoved   = mv.preHasMoved;
+    wasCastling   = mv.wasCastling;
 }

@@ -76,6 +76,7 @@ void Game::Init()
 void Game::ResetGame()
 {
     BOARD.Initialize();  // reset lại bàn cờ
+    BOARD.ClearHistory();
     currentTurn = Turn::White;
     get_horizontal = get_vertical = -1;
     selX = selY = -1;
