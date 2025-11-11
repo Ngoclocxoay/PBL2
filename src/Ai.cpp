@@ -34,7 +34,7 @@ int ChessAI::Evaluate(const Board& board, Side pov) const {
 }
 
 // Đệ quy nước đi
-void ChessAI::GenerateLegalMoves(const Board& board, Side side, std::vector<Move>& out) const {
+void ChessAI::GenerateLegalMoves(const Board& board, Side side, Vector<Move>& out) const {
     out.clear();
     Colors me = SideToColor(side);
 
@@ -55,6 +55,13 @@ void ChessAI::GenerateLegalMoves(const Board& board, Side side, std::vector<Move
                     if (!b.MakeMoveEngine(mv)) continue;
                     bool ischeck = isInCheck(me, &b);
                     b.UndoMoveEngine(mv);
+                    //clean
+                    mv.captured     = nullptr;
+                    mv.promotedPawn = nullptr;
+                    mv.wasPromote   = false;
+                    mv.wasCastling  = false;
+                    mv.rookfromX    = -1;
+                    mv.rooktoX      = -1;
                     if (!ischeck) out.push_back(mv);
                 }
         }
@@ -64,7 +71,7 @@ void ChessAI::GenerateLegalMoves(const Board& board, Side side, std::vector<Move
 int ChessAI::Search(Board& board, int d, int alpha, int beta, Side sideToMove, Side pov) {
     if (d == 0) return Evaluate(board, pov);
 
-    std::vector<Move> moves;
+    Vector<Move> moves;
     GenerateLegalMoves(board, sideToMove, moves);
     if (moves.empty()) {
         return 0;
@@ -105,7 +112,7 @@ int ChessAI::Search(Board& board, int d, int alpha, int beta, Side sideToMove, S
 }
 
 bool ChessAI::FindBestMove(Board& board, Side sideToMove, Move& outBest) {
-    std::vector<Move> moves;
+    Vector<Move> moves;
     GenerateLegalMoves(board, sideToMove, moves);
     if (moves.empty()) return false;
 

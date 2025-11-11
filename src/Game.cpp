@@ -5,6 +5,7 @@
 #include <cmath> //TODO : kiem tra neu tu build ddc thi lam
 #include <algorithm> //TODO : tu build lai
 #include <string>
+#include "Vector.h"
 
 
 using namespace std;
@@ -14,7 +15,7 @@ static inline Side TurnToSide(Turn t)
     return (t == Turn::White) ? Side::White : Side::Black;
 }
 
-vector<MoveHint> moveHints;
+Vector<MoveHint> moveHints;
 
 Game::Game(int width, int height)
     : screenWidth(width), screenHeight(height), currentTurn(Turn::White), get_horizontal(-1), get_vertical(-1), selX(-1), selY(-1), kingX(-1), kingY(-1)
@@ -332,17 +333,7 @@ void Game::Draw_frame() const
     else
         DrawText(turnText, 10, 10, 20, BLACK);
 
-    const char* undoText = "Press [U] to undo";
-    if (fontRegular.texture.id) 
-    {
-        // 10 + 20 + 8 = lề trên + cỡ chữ + khoảng cách
-        Vector2 pos = {10, 10 + 20 + 8};
-        DrawTextEx(fontRegular, undoText, pos, 18.0f, 1.0f, DARKGRAY);
-    } 
-    else 
-    {
-        DrawText(undoText, 10, 10 + 20 + 8, 18, DARKGRAY);
-    }
+    
 
     if (gameOver)
     {

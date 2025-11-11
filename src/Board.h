@@ -3,7 +3,7 @@
 #include "TextureCache.h"
 #include "Move.h"
 #include "Stack.h"
-#include <vector> //TODO : sau tự build lại
+#include "Vector.h"
 
 
 class Board
@@ -18,7 +18,7 @@ class Board
         void Initialize(); //Initial Board
 
         void DrawBoardBase(int, int) const;
-        void DrawHighlight(int, int, int, int, const std::vector<MoveHint>&) const;
+        void DrawHighlight(int, int, int, int,const Vector<MoveHint>&) const;
         void DrawPiece(int, int, const TextureCache&) const;
         void DrawHighLight(int, int, int, int) const;
 

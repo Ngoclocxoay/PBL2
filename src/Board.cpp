@@ -104,8 +104,7 @@ bool Board::MakeMove(const Move& m) {
     rec.moverType       = mover->getType();
     rec.wasPromote      = false;
     rec.wasCastling     = false;
-    rec.captured        = board[m.toX][m.toY];
-    board[m.toX][m.toY] = nullptr;   
+    rec.captured        = board[m.toX][m.toY];  
     rec.preHasMoved     = mover->getHasMoved();
     rec.promotedPawn    = nullptr;
     //Promote
@@ -119,38 +118,42 @@ bool Board::MakeMove(const Move& m) {
         return true;
     }
     //Castling
-    else if (mover->getType() == PieceType::KING)
+    if (mover->getType() == PieceType::KING)
     {
         int dX = abs(m.fromX - m.toX);
         int dY = abs(m.fromY - m.toY);
 
         if (dY == 0 && dX == 2)
         {
-            const Piece* rook = (rec.toX > rec.fromX) ? board[7][rec.toY] : board[0][rec.toY];
-            if (!rook) return false;
-            if (rook->getType() != PieceType::ROOK) return false;
+            int y = m.toY;
+            bool kingside     = (m.toX > m.fromX);
+            rec.rookfromX     = kingside ? 7 : 0;
+            rec.rooktoX       = kingside ? 5 : 3;
+            const Piece* rook = board[rec.rookfromX][y];
+            if (!rook || rook->getType() != PieceType::ROOK) return false;
 
-            //Move King
+            //Check clear
+            if (kingside)
+            {
+                if (board[5][y] != nullptr) return false;
+                if (board[6][y] != nullptr) return false;
+            }
+            else
+            {
+                if (board[1][y] != nullptr) return false;
+                if (board[2][y] != nullptr) return false;
+                if (board[3][y] != nullptr) return false;
+            }
+
+            //move king
             board[m.toX][m.toY]     = mover;
             board[m.fromX][m.fromY] = nullptr;
-
-            //Move Rook
-            if (m.toX > m.fromX)
-            {
-                //King side
-                board[5][rec.toY] = board[7][rec.toY];
-                board[7][rec.toY] = nullptr;
-                if (board[5][m.toY]) board[5][m.toY]->setHasMoved(true);
-            }
-            else 
-            {
-                //Queen side
-                board[3][rec.toY] = board[0][rec.toY];
-                board[0][rec.toY] = nullptr;
-                if (board[3][m.toY]) board[3][m.toY]->setHasMoved(true);
-            }
-            
             mover->setHasMoved(true);
+            //move rook
+            board[rec.rooktoX][y]   = board[rec.rookfromX][y];
+            board[rec.rookfromX][y] = nullptr;
+            board[rec.rooktoX][y]->setHasMoved(true);
+
             rec.wasCastling = true;
             moveHistory.push(rec);
             return true;
@@ -158,7 +161,7 @@ bool Board::MakeMove(const Move& m) {
     }
     
     //others
-    board[m.toX][m.toY] = mover;
+    board[m.toX][m.toY]     = mover;
     board[m.fromX][m.fromY] = nullptr;
     mover->setHasMoved(true);    
     moveHistory.push(rec);
@@ -187,7 +190,7 @@ void Board::UndoMove()
         board[last.fromX][last.fromY]->setHasMoved(last.preHasMoved);
         return;
     }
-    else if (last.wasCastling)
+    if (last.wasCastling)
     {
         //Give back king
         board[last.fromX][last.fromY] = board[last.toX][last.toY];
@@ -196,22 +199,10 @@ void Board::UndoMove()
             board[last.fromX][last.fromY]->setHasMoved(false);
         
         //Give back rook
-        if (last.toX > last.fromX)
-        {
-            //King side
-            board[7][last.fromY] = board[5][last.fromY];
-            board[5][last.fromY] = nullptr;
-            if (board[7][last.fromY]) 
-                board[7][last.fromY]->setHasMoved(false);
-        }
-        else
-        {
-            //Queen side
-            board[0][last.fromY] = board[3][last.fromY];
-            board[3][last.fromY] = nullptr;
-            if (board[0][last.fromY]) 
-                board[0][last.fromY]->setHasMoved(false);
-        }
+        int y = last.toY;
+        board[last.rookfromX][y] = board[last.rooktoX][y];
+        board[last.rooktoX][y]   = nullptr;
+        board[last.rookfromX][y]->setHasMoved(false);
         return;
     }
     
@@ -229,16 +220,16 @@ bool Board::MakeMoveEngine(Move& state)
     state.wasCastling = false;
     state.wasPromote  = false;
 
-    Piece* mover         = board[state.fromX][state.fromY];
-    const Piece* capture = board[state.toX][state.toY]; 
+    Piece* mover   = board[state.fromX][state.fromY];
+    Piece* capture = board[state.toX][state.toY]; 
     if (!mover) return false;
     if (state.fromX == state.toX && state.fromY == state.toY) return false;
     if (capture && capture->getColor() == mover->getColor()) return false;
 
-
-    //backup captured
-    state.captured              = board[state.toX][state.toY];    
-    board[state.toX][state.toY] = nullptr;
+    //backup
+    state.preHasMoved  = mover->getHasMoved();
+    state.captured     = capture;    
+    state.promotedPawn = nullptr;
 
     //Promote
     if (mover->getType() == PieceType::PAWN && (state.toY == 0 || state.toY == 7))
@@ -250,39 +241,51 @@ bool Board::MakeMoveEngine(Move& state)
         return true;
     }
     //Castling
-    else if (mover->getType() == PieceType::KING)
+    if (mover->getType() == PieceType::KING)
     {
         int dX = abs(state.fromX - state.toX);
         int dY = abs(state.fromY - state.toY);
 
         if (dY == 0 && dX == 2)
         {
-            const Piece* rook = (state.toX > state.fromX) ? board[7][state.toY] : board[0][state.toY];
-            if (!rook) return false;
-            if (rook->getType() != PieceType::ROOK) return false;
+            int y = state.toY;
+            bool kingside   = (state.toX > state.fromX);
+            state.rookfromX = kingside ? 7 : 0;
+            state.rooktoX   = kingside ? 5 : 3; 
 
-            board[state.toX][state.toY]     = mover;
-            board[state.fromX][state.fromY] = nullptr;
-            
-            if (state.toX > state.fromX) 
+            Piece* rook = board[state.rookfromX][y];
+            if (!rook || rook->getType() != PieceType::ROOK) return false;
+
+            //Check clear
+            if (kingside)
             {
-                //king side
-                board[5][state.toY] = board[7][state.toY];
-                board[7][state.toY] = nullptr;
+                if (board[5][y] != nullptr) return false;
+                if (board[6][y] != nullptr) return false;
             }
             else 
             {
-                //queen side
-                board[3][state.toY] = board[0][state.toY];
-                board[0][state.toY] = nullptr;
+                if (board[1][y] != nullptr) return false;
+                if (board[2][y] != nullptr) return false;
+                if (board[3][y] != nullptr) return false;
             }
+
+            //move king
+            board[state.toX][state.toY]     = mover;
+            board[state.fromX][state.fromY] = nullptr;
+            board[state.toX][state.toY]->setHasMoved(true);
+            //move rook
+            board[state.rooktoX][y]   = rook;
+            board[state.rookfromX][y] = nullptr;
+            board[state.rooktoX][y]->setHasMoved(true);
+
             state.wasCastling = true;
             return true;
         }
     }
     //Others
-    board[state.toX][state.toY] = mover;
+    board[state.toX][state.toY]     = mover;
     board[state.fromX][state.fromY] = nullptr;    
+    board[state.toX][state.toY]->setHasMoved(true);
     return true;
 }
 
@@ -306,24 +309,18 @@ void Board::UndoMoveEngine(const Move& state)
         //Give back king
         board[state.fromX][state.fromY] = board[state.toX][state.toY];
         board[state.toX][state.toY]     = nullptr;
+        board[state.fromX][state.fromY]->setHasMoved(false);
         //Give back rook
-        if (state.toX > state.fromX)
-        {
-            //King side
-            board[7][state.toY] = board[5][state.toY];
-            board[5][state.toY] = nullptr;
-        }
-        else
-        {
-            //Queen side
-            board[0][state.toY] = board[3][state.toY];
-            board[3][state.toY] = nullptr;
-        }
+        int y = state.toY;
+        board[state.rookfromX][y] = board[state.rooktoX][y];
+        board[state.rooktoX][y]   = nullptr;
+        board[state.rookfromX][y]->setHasMoved(false);
         return;
     }
     //others
     board[state.fromX][state.fromY] = board[state.toX][state.toY];
     board[state.toX][state.toY]     = state.captured;
+    board[state.fromX][state.fromY]->setHasMoved(state.preHasMoved);
     
 }
 
@@ -364,7 +361,7 @@ void Board::DrawBoardBase(int truc_ngang, int truc_doc) const
     DrawRectangleLines(truc_ngang, truc_doc, Size, Size, BLACK); //Vẽ viền mỏng
 }
 
-void Board::DrawHighlight(int originX, int originY, int getX, int getY, const std::vector<MoveHint>& moveHints) const
+void Board::DrawHighlight(int originX, int originY, int getX, int getY, const Vector<MoveHint>& moveHints) const
 {
     if (getX == -1 && getY == -1) return;
     int xi = originX + getX * cell_size;

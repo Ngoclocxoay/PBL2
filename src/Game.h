@@ -4,7 +4,7 @@
 #include "Ai.h"
 #include "constant.hpp"
 #include <raylib.h>
-#include <vector>
+
 
 enum class GameState {Splash, ModeSelect, Playing};
 enum class GameMode {PvP, PvC};

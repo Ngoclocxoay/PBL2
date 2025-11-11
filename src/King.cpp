@@ -77,7 +77,12 @@ bool King::Castling(int fromX, int fromY, int toX, int toY, const Board* board) 
 
     if (Check(fromX, fromY, board)) return false;
     if (!pathClear(fromX, fromY, toX, toY, board)) return false;
-
+    //Check cell b(1) in queenside
+    if (toX < fromX)
+    {
+        if (board->GetPiece(1, toY) != nullptr) return false;
+    }
+    
     const Piece* target;
     if (fromX < toX) target = board->GetPiece(7, toY);
     else target = board->GetPiece(0, toY);
