@@ -18,9 +18,10 @@ class Board
         void Initialize(); //Initial Board
 
         void DrawBoardBase(int, int) const;
-        void DrawHighlight(int, int, int, int,const Vector<MoveHint>&) const;
+        void DrawHighLight(int, int, int, int,const Vector<MoveHint>&) const;
         void DrawPiece(int, int, const TextureCache&) const;
         void DrawHighLight(int, int, int, int) const;
+        void DrawHighLight(int, int, int, int, int, int) const;
 
         //Piece access method
         Piece* GetPiece(int, int) const;

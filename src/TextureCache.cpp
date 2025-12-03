@@ -22,6 +22,10 @@ TextureCache::TextureCache()
 {
 }
 
+TextureCache::~TextureCache()
+{
+}
+
 void TextureCache::Init_texture()
 {
     //BLACK

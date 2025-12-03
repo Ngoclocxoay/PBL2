@@ -6,13 +6,15 @@
 #include <raylib.h>
 
 
-enum class GameState {Splash, ModeSelect, Playing};
+enum class GameState {Splash, ModeSelect, TimeSelect, Playing};
 enum class GameMode {PvP, PvC};
 
 class Game
 {
     private:
-        // time
+        // match time setting (seconds). Default 15 minutes.
+        float matchTimeSeconds = 15.0f * 60.0f;
+
         float whiteTimeLeft = 15.0f * 60.0f; 
         float blackTimeLeft = 15.0f * 60.0f; 
         bool playerIsWhite = true;
@@ -37,6 +39,7 @@ class Game
         int get_horizontal, get_vertical;
         int selX, selY;
         int kingX, kingY;
+        int fX, fY, tX, tY;
 
 
         // ==========Menu / Background =========
@@ -58,7 +61,7 @@ class Game
         bool checkMate (Colors);
         void DoAIMove();
         bool Button(const Rectangle&, const char*, int = 28) const;
-        void StartGame(GameMode);
+        void StartGame(GameMode);      // now transitions to TimeSelect
         void UndoPlayerLast();
     public:
         Game(int, int);

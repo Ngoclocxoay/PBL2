@@ -202,7 +202,10 @@ void Board::UndoMove()
         int y = last.toY;
         board[last.rookfromX][y] = board[last.rooktoX][y];
         board[last.rooktoX][y]   = nullptr;
-        board[last.rookfromX][y]->setHasMoved(false);
+        if (board[last.rookfromX][y] != nullptr)
+        {
+            board[last.rookfromX][y]->setHasMoved(false);
+        }
         return;
     }
     
@@ -361,7 +364,7 @@ void Board::DrawBoardBase(int truc_ngang, int truc_doc) const
     DrawRectangleLines(truc_ngang, truc_doc, Size, Size, BLACK); //Vẽ viền mỏng
 }
 
-void Board::DrawHighlight(int originX, int originY, int getX, int getY, const Vector<MoveHint>& moveHints) const
+void Board::DrawHighLight(int originX, int originY, int getX, int getY, const Vector<MoveHint>& moveHints) const
 {
     if (getX == -1 && getY == -1) return;
     int xi = originX + getX * cell_size;
@@ -384,6 +387,16 @@ void Board::DrawHighLight(int originX, int originY, int getX, int getY) const
     int xi = originX + getX * cell_size;
     int yi = originY + getY * cell_size;
     DrawRectangleLinesEx({(float)xi, (float)yi, (float)cell_size, (float)cell_size}, 4, RED);
+}
+
+void Board::DrawHighLight(int originX, int originY, int fromX, int fromY, int toX, int toY) const
+{
+    int fX = originX + fromX * cell_size;
+    int fY = originY + fromY * cell_size;
+    int tX = originX + toX * cell_size;
+    int tY = originY + toY * cell_size;
+    DrawRectangleLinesEx({(float)fX, (float)fY, (float)cell_size, (float)cell_size}, 4, YELLOW);
+    DrawRectangleLinesEx({(float)tX, (float)tY, (float)cell_size, (float)cell_size}, 4, YELLOW);
 }
 
 void Board::DrawPiece(int truc_ngang, int truc_doc, const TextureCache& cache) const

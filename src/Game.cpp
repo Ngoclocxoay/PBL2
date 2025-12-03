@@ -1,7 +1,6 @@
 #include "Game.h"
 #include <raylib.h>
 #include "constant.hpp"
-#include <vector>
 #include <cmath> //TODO : kiem tra neu tu build ddc thi lam
 #include <algorithm> //TODO : tu build lai
 #include <string>
@@ -58,7 +57,7 @@ void Game::Init()
     cache.Init_texture();
     BOARD.Initialize();
 
-    // ==== Load custom fonts ====
+    // ==== Load custom fonts ==== 
     fontRegular = LoadFont("asset/fonts/Inter_28pt-Regular.ttf");
     fontBold    = LoadFont("asset/fonts/Inter_18pt-Bold.ttf");
 
@@ -80,6 +79,8 @@ void Game::ResetGame()
     BOARD.ClearHistory();
     currentTurn = Turn::White;
     get_horizontal = get_vertical = -1;
+    fX = fY = -1;
+    tX = tY = -1;
     selX = selY = -1;
     kingX = -1; kingY = -1;
     moveHints.clear();
@@ -87,9 +88,8 @@ void Game::ResetGame()
     winnerTurn = Turn::White;
     plyCount = 0; //Quan trong de Undo an toan
     
-    //time
-    whiteTimeLeft = 15.0f * 60.0f;
-    blackTimeLeft = 15.0f * 60.0f;
+    whiteTimeLeft = matchTimeSeconds;
+    blackTimeLeft = matchTimeSeconds;
     timersEnabled = true;
     playerIsWhite = true;
 }
@@ -191,19 +191,18 @@ void Game::Render()
     // === Phím nhanh: Reset & Undo khi đang chơi ===
     if (state == GameState::Playing) 
     {
-        /* if (IsKeyPressed(KEY_R)) ResetGame();
-        if (IsKeyPressed(KEY_U)) UndoPlayerLast();
-        if (IsKeyPressed(KEY_B))
-        {
-            state = GameState::ModeSelect;
-            ResetGame();
-        } */
+        if (bgMenu.id) {
+            DrawTexturePro(bgMenu,
+                {0,0,(float)bgMenu.width,(float)bgMenu.height},
+                {0,0,(float)screenWidth,(float)screenHeight},
+                {0,0}, 0.0f, WHITE);
+        }
         
         float btnW = 44.0f;
         float btnH = 44.0f;
         float gap  = 10.0f;
 
-        //Căn cột nút: sất bên trái bàn cờ
+        //Căn cột nút: sát bên trái bàn cờ
         float columX = originX - (btnW + gap);
         if (columX < 10.0f) columX = 10.0f; // nếu cửa sổ nhỏ quá thì neo vào lề
 
@@ -245,9 +244,9 @@ void Game::Render()
         
         if (!gameOver && aiEnabled && currentTurn == Turn::Black)  
         {
-        DoAIMove();
+            DoAIMove();
         }
-    return;
+        return;
     }
 
     if (state == GameState::Splash) 
@@ -267,6 +266,49 @@ void Game::Render()
         return;
     }
 
+    // ====== TimeSelect (NEW) ======
+    if (state == GameState::TimeSelect)
+    {
+        if (bgMenu.id) {
+            DrawTexturePro(bgMenu,
+                {0,0,(float)bgMenu.width,(float)bgMenu.height},
+                {0,0,(float)screenWidth,(float)screenHeight},
+                {0,0}, 0.0f, WHITE);
+        }
+
+        const char* title = "Select Mode";
+        if (fontBold.texture.id)
+            DrawTextEx(fontBold, title, {(float)screenWidth*0.5f - MeasureText(title, 28)/2.0f, (float)screenHeight*0.25f}, 28.0f, 1.0f, BLACK);
+        else
+            DrawText(title, screenWidth/2 - MeasureText(title, 28)/2, screenHeight/4, 28, BLACK);
+
+        Rectangle ba_x = { (float)screenWidth*0.5f - 150, (float)screenHeight*0.45f - 30, 300, 60 };
+        Rectangle ba_y  = { (float)screenWidth*0.5f - 150, (float)screenHeight*0.6f  - 30, 300, 60 };
+
+        if (Button(ba_x, "Standard", 26))
+        {
+            matchTimeSeconds = 20.0f * 60.0f;
+            ResetGame();
+            state = GameState::Playing;
+        }
+        if (Button(ba_y, "Blitz", 26))
+        {
+            matchTimeSeconds = 10.0f * 60.0f;
+            ResetGame();
+            state = GameState::Playing;
+        }
+
+        // Draw a small hint to go back
+        Rectangle backRect = {10, 10, 120, 40};
+        if (Button(backRect, "Back", 20))
+        {
+            state = GameState::ModeSelect;
+        }
+
+        EndDrawing();
+        return;
+    }
+
     if (state == GameState::ModeSelect) 
     {
         if (bgMenu.id) {
@@ -279,6 +321,7 @@ void Game::Render()
         Rectangle btn1 = { (float)screenWidth*0.5f - 260, (float)screenHeight*0.75f - 30, 220, 60 };
         Rectangle btn2 = { (float)screenWidth*0.5f +  40, (float)screenHeight*0.75f - 30, 220, 60 };
 
+        // Instead of directly starting the game, go to TimeSelect so player can choose 20'/10'
         if (Button(btn1, "PvsP", 32)) StartGame(GameMode::PvP);
         if (Button(btn2, "PvsC", 32)) StartGame(GameMode::PvC);
 
@@ -316,9 +359,18 @@ void Game::Draw_frame() const
 {
     ClearBackground(RAYWHITE);
     BOARD.DrawBoardBase(originX, originY);
-    BOARD.DrawHighlight(originX, originY, this->get_horizontal, this->get_vertical, moveHints);
+    BOARD.DrawHighLight(originX, originY, this->get_horizontal, this->get_vertical, moveHints);
 
     Colors turnColor = (currentTurn == Turn::White) ? Colors::White : Colors::Black;
+    if (this->fX != -1 && this->fY != -1 && this->tX != -1 && this->tY != -1)
+    {
+        const Piece* fP = BOARD.GetPiece(fX, fY);
+        const Piece* tP = BOARD.GetPiece(tX, tY);
+        if ((fP && tP) && fP->getColor() == tP->getColor())
+            BOARD.DrawHighLight(originX, originY, fX, fY, tX, tY);
+        else if (!fP && tP)
+            BOARD.DrawHighLight(originX, originY, fX, fY, tX, tY);
+    }
     int xVal, yVal;
     if (isInCheck(turnColor, xVal, yVal))
     {
@@ -327,14 +379,7 @@ void Game::Draw_frame() const
     }
     BOARD.DrawPiece(originX, originY, cache);
 
-    const char* turnText = (currentTurn == Turn::White) ? "White's turn" : "Black's turn";
-    if (fontBold.texture.id)
-        DrawTextEx(fontBold, turnText, {10, 10}, 20.0f, 1.0f, BLACK);
-    else
-        DrawText(turnText, 10, 10, 20, BLACK);
-
-    
-
+   
     if (gameOver)
     {
         const char* wintext = (winnerTurn == Turn::White) ? "CheckMate - White Win" : "CheckMate - Black Win";
@@ -398,15 +443,19 @@ void Game::HandleInput()
             {
                 if (h.x == xVal && h.y == yVal) { legal = true; break;}
             }
-
+            //Thực hiện di chuyển
             if (legal)
             {   
                 Move mv{this->get_horizontal, this->get_vertical, xVal, yVal};
+                this->tX = xVal;
+                this->tY = yVal;
                 if (BOARD.MakeMove(mv))
                 {   
                     plyCount++;
 
                     //clear state after move piece
+                    this->fX = this->get_horizontal;
+                    this->fY = this->get_vertical;
                     this->get_horizontal = -1;
                     this->get_vertical = -1;
                     moveHints.clear();
@@ -479,7 +528,7 @@ void Game::HandleInput()
             if (turnColor != selected->getColor()) return;
 
             this->get_horizontal = xVal;
-            this->get_vertical = yVal;
+            this->get_vertical   = yVal;
 
             for (int toX = 0; toX < 8; toX++)
             {
@@ -656,9 +705,7 @@ void Game::StartGame(GameMode m)
 {
     mode = m;
     aiEnabled = (mode == GameMode::PvC); // PvP tắt AI, PvC bật AI
-    ResetGame();
-    state = GameState::Playing;
-    // Nếu muốn AI đi Trắng thì đặt currentTurn = Turn::Black và gọi DoAIMove khi currentTurn==White
+    state = GameState::TimeSelect;
 }
 
 void Game::DoAIMove()
@@ -667,6 +714,10 @@ void Game::DoAIMove()
 
     Move best;
     if (ai.FindBestMove(BOARD, sideToMove, best)) {
+        this->fX = best.fromX;
+        this->fY = best.fromY;
+        this->tX = best.toX;
+        this->tY = best.toY;
         if (BOARD.MakeMove(best)) {  
             plyCount++;              
             get_horizontal = get_vertical = -1;
@@ -695,6 +746,7 @@ void Game::UndoPlayerLast()
 
     gameOver = false;
     get_horizontal = get_vertical = -1;
+    fX = fY = tX = tY = -1;
     moveHints.clear();
 
     if (mode == GameMode::PvC) 

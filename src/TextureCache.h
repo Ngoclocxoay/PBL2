@@ -11,6 +11,7 @@ struct TextureCache{
 
     //Construction
     TextureCache();
+    ~TextureCache();
     void Init_texture();
 
     void Shutdown();
